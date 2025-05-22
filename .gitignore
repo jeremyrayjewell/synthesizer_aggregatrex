@@ -1,1 +1,14 @@
 node_modules/
+.cache/
+*.pack
+# Large binary files
+*.zip
+*.rar
+*.gz
+*.tar
+*.7z
+# Specific large files
+public/textures/brown_leather_4k.blend.zip
+# OS specific files
+.DS_Store
+Thumbs.db
