@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import KnobPanel from './KnobPanel';
 import Panel from './Panel';
+import SliderPanel from './SliderPanel';
 import { useSynthContext } from '../hooks/useSynth';
-import { Text } from '@react-three/drei';
+import { Text, Html, Plane } from '@react-three/drei';
+import * as THREE from 'three';
 
 /**
  * A component that creates a full 3D synthesizer control panel
@@ -312,6 +314,120 @@ const SynthPanel3D = () => {
     }
   ];
 
+  // Create filter slider controls for vertical presentation
+  const filterSliderControls = [
+    {
+      id: 'filter-cutoff-slider',
+      label: 'Cutoff',
+      value: (synthParams.filter.frequency - 20) / 19980, // Scale 20-20000 Hz to 0-1
+      min: 0,
+      max: 1,
+      onChange: (value) => {
+        // Convert 0-1 to frequency range (20Hz-20kHz, logarithmic)
+        const frequency = 20 * Math.pow(1000, value);
+        setSynthParams({
+          ...synthParams,
+          filter: { ...synthParams.filter, frequency }
+        });
+      },
+      valueFormatter: (val) => {
+        const freq = 20 * Math.pow(1000, val);
+        return freq < 1000 
+          ? `${Math.round(freq)}Hz` 
+          : `${(freq/1000).toFixed(1)}kHz`;
+      },
+      color: '#8bc34a'
+    },
+    {
+      id: 'filter-resonance-slider',
+      label: 'Resonance',
+      value: synthParams.filter.Q,
+      min: 0.1,
+      max: 20,
+      onChange: (value) => setSynthParams({
+        ...synthParams,
+        filter: { ...synthParams.filter, Q: value }
+      }),
+      valueFormatter: (val) => val.toFixed(1),
+      color: '#8bc34a'
+    },
+    {
+      id: 'filter-env-amount',
+      label: 'Env Amt',
+      value: synthParams.filter.envelopeAmount,
+      min: 0,
+      max: 1,
+      onChange: (value) => setSynthParams({
+        ...synthParams,
+        filter: { ...synthParams.filter, envelopeAmount: value }
+      }),
+      valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
+      color: '#8bc34a'
+    }
+  ];
+  
+  // Create modulation slider controls for horizontal presentation
+  const modulationSliderControls = [
+    {
+      id: 'osc1-mix-slider',
+      label: 'Osc 1 Mix',
+      value: synthParams.oscillator1.mix,
+      min: 0,
+      max: 1,
+      onChange: (value) => setSynthParams({
+        ...synthParams,
+        oscillator1: { ...synthParams.oscillator1, mix: value }
+      }),
+      valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
+      color: '#ff9800'
+    },
+    {
+      id: 'osc2-mix-slider',
+      label: 'Osc 2 Mix',
+      value: synthParams.oscillator2.mix,
+      min: 0,
+      max: 1,
+      onChange: (value) => setSynthParams({
+        ...synthParams,
+        oscillator2: { ...synthParams.oscillator2, mix: value }
+      }),
+      valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
+      color: '#ff9800'
+    },
+    {
+      id: 'delay-mix-slider',
+      label: 'Delay Mix',
+      value: synthParams.effects.delay.mix,
+      min: 0,
+      max: 1,
+      onChange: (value) => setSynthParams({
+        ...synthParams,
+        effects: { 
+          ...synthParams.effects, 
+          delay: { ...synthParams.effects.delay, mix: value }
+        }
+      }),
+      valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
+      color: '#ff9800'
+    },
+    {
+      id: 'reverb-mix-slider',
+      label: 'Reverb Mix',
+      value: synthParams.effects.reverb.mix,
+      min: 0,
+      max: 1,
+      onChange: (value) => setSynthParams({
+        ...synthParams,
+        effects: { 
+          ...synthParams.effects, 
+          reverb: { ...synthParams.effects.reverb, mix: value }
+        }
+      }),
+      valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
+      color: '#ff9800'
+    }
+  ];
+
   // Create interactive panic button
   const PanicButton = () => {
     const [isPressed, setIsPressed] = useState(false);
@@ -402,6 +518,58 @@ const SynthPanel3D = () => {
             position={[3, -1.5, 0.1]}
             knobColor="#9c27b0"
             panelColor="#1a1a1a"
+          />
+          
+          {/* Filter slider section */}
+          <SliderPanel
+            controls={filterSliderControls}
+            title="FILTER SLIDERS"
+            rows={3}
+            cols={1}
+            spacing={1.5}
+            position={[-12, 2, 0.1]}
+            sliderColor="#8bc34a"
+            panelColor="#1a1a1a"
+            orientation="vertical"
+          />
+          
+          {/* Modulation slider section */}
+          <SliderPanel
+            controls={modulationSliderControls}
+            title="MODULATION SLIDERS"
+            rows={1}
+            cols={4}
+            spacing={1.5}
+            position={[-12, -1.5, 0.1]}
+            sliderColor="#ff9800"
+            panelColor="#1a1a1a"
+            orientation="horizontal"
+          />
+          
+          {/* Filter sliders - vertical orientation */}
+          <SliderPanel
+            controls={filterSliderControls}
+            title="FILTER CONTROLS"
+            orientation="vertical"
+            width={3}
+            height={6}
+            position={[-3, 0, 0.1]}
+            color="#1a1a1a"
+            sliderLength={3}
+            sliderThickness={0.15}
+          />
+          
+          {/* Modulation mix sliders - horizontal orientation */}
+          <SliderPanel
+            controls={modulationSliderControls}
+            title="MIX CONTROLS"
+            orientation="horizontal"
+            width={16}
+            height={2.5}
+            position={[0, -4.5, 0.1]}
+            color="#1a1a1a"
+            sliderLength={2}
+            sliderThickness={0.12}
           />
           
           {/* Panic button */}

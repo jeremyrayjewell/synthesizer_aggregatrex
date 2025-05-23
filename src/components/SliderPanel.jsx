@@ -1,54 +1,63 @@
 import React from 'react';
-import { Text } from '@react-three/drei';
+import Panel from './Panel';
 import Slider from './Slider';
 
-const PanelBackground = ({ title, width = 4, height = 3, children }) => {
+/**
+ * A panel containing multiple sliders arranged vertically or horizontally
+ */
+const SliderPanel = ({ 
+  controls = [], 
+  title = 'Sliders', 
+  spacing = 0.6, 
+  orientation = 'vertical',
+  width = 4,
+  height = 0, // Will be calculated based on controls if 0
+  color = '#444444',
+  sliderLength = 2.5,
+  sliderThickness = 0.12
+}) => {
+  // Calculate panel dimensions based on orientation and number of controls
+  const calculatedHeight = orientation === 'vertical' 
+    ? (height > 0 ? height : controls.length * spacing + 1) 
+    : (height > 0 ? height : 2.5);
+    
+  const calculatedWidth = orientation === 'horizontal' 
+    ? (width > 0 ? width : controls.length * spacing + 1) 
+    : (width > 0 ? width : 4);
+
   return (
     <group>
-      <mesh position={[0, 0, -0.01]}>
-        <planeGeometry args={[width, height]} />
-        <meshStandardMaterial color="#222" transparent opacity={0.6} />
-      </mesh>
-
-      {title && (
-        <Text
-          position={[0, height / 2 - 0.3, 0.01]}
-          fontSize={0.2}
-          color="white"
-          anchorX="center"
-          anchorY="middle"
-        >
-          {title}
-        </Text>
-      )}
-
-      <group position={[0, 0, 0.05]}>
-        {children}
-      </group>
-    </group>
-  );
-};
-
-const SliderPanel = ({ controls = [], title = 'Sliders', spacing = 1.2 }) => {
-  return (
-    <group>
-      <PanelBackground width={4} height={controls.length * spacing + 1} title={title}>
+      <Panel 
+        width={calculatedWidth} 
+        height={calculatedHeight} 
+        title={title}
+        color={color}
+        depth={0.3}
+      >
         {controls.map((ctrl, i) => {
-          const y = -((i - (controls.length - 1) / 2) * spacing);
+          // Position sliders based on orientation
+          const position = orientation === 'vertical'
+            ? [0, -((i - (controls.length - 1) / 2) * spacing), 0.1]
+            : [(i - (controls.length - 1) / 2) * spacing, 0, 0.1];
+            
           return (
-            <group key={ctrl.id} position={[0, y, 0.1]}>
+            <group key={ctrl.id || `slider-${i}`} position={position}>
               <Slider
                 value={ctrl.value}
                 min={ctrl.min}
                 max={ctrl.max}
                 onChange={ctrl.onChange}
                 label={ctrl.label}
+                color={ctrl.color || '#61dafb'}
+                valueFormatter={ctrl.valueFormatter || (val => val.toFixed(2))}
+                length={sliderLength}
+                thickness={sliderThickness}
+                orientation={orientation === 'vertical' ? 'horizontal' : 'vertical'}
               />
             </group>
           );
         })}
-      </PanelBackground>
-    </group>
+      </Panel>    </group>
   );
 };
 
