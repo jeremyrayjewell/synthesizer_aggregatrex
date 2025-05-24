@@ -11,18 +11,38 @@ export default class SynthEngine {
     this.masterGain.gain.value = 0.8;
     this.masterGain.connect(this.audioContext.destination);
     
-    // Create synth parameters
+    // Create synth parameters with extended parameter set
     this.parameters = {
-      waveform: 'sawtooth',
+      // Oscillator 1
+      oscillator1Type: 'sawtooth',
+      oscillator1Detune: 0,
+      oscillator1Mix: 0.5,
+      
+      // Oscillator 2
+      oscillator2Type: 'square',
+      oscillator2Detune: 0,
+      oscillator2Mix: 0.5,
+      
+      // Filter
+      filterType: 'lowpass',
+      filterCutoff: 2000,
+      filterQ: 1,
+      
+      // Envelope
       attack: 0.01,
       decay: 0.2,
       sustain: 0.7,
       release: 0.5,
-      filterType: 'lowpass',
-      filterCutoff: 2000,
-      filterQ: 1,
+      
+      // Effects
+      delayTime: 0.3,
+      delayFeedback: 0.3,
+      delayMix: 0.2,
+      reverbSize: 0.5,
+      reverbMix: 0.2
     };
-      // Initialize the MIDI Voice Manager for advanced voice handling
+    
+    // Initialize the MIDI Voice Manager for advanced voice handling
     this.voiceManager = new MIDIVoiceManager(this.audioContext);
     
     // Set up an emergency cleanup interval - reduced from 10s to 5s for more frequent checks
@@ -180,8 +200,21 @@ export default class SynthEngine {
    * Set a synth parameter
    */
   setParam(param, value) {
+    console.log('Setting synth param:', param, value);
     if (this.parameters.hasOwnProperty(param)) {
       this.parameters[param] = value;
+      
+      // Apply parameter change to existing voices
+      if (this.voiceManager) {
+        const voices = this.voiceManager.getAllVoices();
+        voices.forEach(voice => {
+          if (voice && typeof voice.updateParam === 'function') {
+            voice.updateParam(param, value);
+          }
+        });
+      }
+    } else {
+      console.warn('Unknown parameter:', param);
     }
   }
   

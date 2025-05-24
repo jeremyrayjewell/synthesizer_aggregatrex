@@ -55,41 +55,47 @@ const Keyboard3D = ({
   const totalWidth = whiteNotes.length * keySpacing;
   const initialOffset = totalWidth / 2;
 
-  const viewWidth = 10; // approx width in view
-  const maxOffset = viewWidth / 2;
-  const minOffset = -viewWidth / 2;
+  // Increase view width for more visible keys
+  const viewWidth = 15;
+  const maxOffset = totalWidth / 2;
+  const minOffset = -totalWidth / 2;
 
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const dragging = useRef(false);
   const lastX = useRef(null);
 
-  // Arrow keys
+  // Arrow keys for scrolling
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'ArrowLeft') {
-        setKeyboardOffset(offset => clamp(offset + 1, minOffset, maxOffset));
+        setKeyboardOffset(offset => clamp(offset + 2, minOffset, maxOffset));
       } else if (e.key === 'ArrowRight') {
-        setKeyboardOffset(offset => clamp(offset - 1, minOffset, maxOffset));
+        setKeyboardOffset(offset => clamp(offset - 2, minOffset, maxOffset));
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [minOffset, maxOffset]);
 
-  // Dragging
+  // Mouse drag scrolling
   useEffect(() => {
     const handleDown = (e) => {
-      dragging.current = true;
-      lastX.current = e.clientX;
+      if (e.button === 2) { // Only scroll on right mouse button
+        dragging.current = true;
+        lastX.current = e.clientX;
+        e.preventDefault();
+      }
     };
+
     const handleMove = (e) => {
       if (!dragging.current) return;
       const deltaX = e.clientX - lastX.current;
       setKeyboardOffset(offset =>
-        clamp(offset + deltaX * 0.01, minOffset, maxOffset)
+        clamp(offset + deltaX * 0.05, minOffset, maxOffset)
       );
       lastX.current = e.clientX;
     };
+
     const handleUp = () => {
       dragging.current = false;
     };
@@ -97,26 +103,32 @@ const Keyboard3D = ({
     window.addEventListener('mousedown', handleDown);
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
+
     return () => {
       window.removeEventListener('mousedown', handleDown);
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('contextmenu', (e) => e.preventDefault());
     };
   }, [minOffset, maxOffset]);
 
-  // Mouse wheel
+  // Mouse wheel scrolling
   useEffect(() => {
     const handleWheel = (e) => {
+      e.preventDefault();
       setKeyboardOffset(offset =>
-        clamp(offset - e.deltaY * 0.02, minOffset, maxOffset)
+        clamp(offset - e.deltaX * 0.02, minOffset, maxOffset)
       );
     };
-    window.addEventListener('wheel', handleWheel);
+    window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
   }, [minOffset, maxOffset]);
 
+  // Create keyboard layout
   return (
-    <group position={[-initialOffset + keyboardOffset, -8, 0]}>
+    <group position={[-initialOffset + keyboardOffset, 0, 0]}>
+      {/* White keys */}
       {whiteNotes.map((note, i) => (
         <Key
           key={note}
@@ -128,6 +140,7 @@ const Keyboard3D = ({
           onNoteOff={onNoteOff}
         />
       ))}
+      {/* Black keys */}
       {blackNotes.map((note) => {
         const index = whiteNotes.findIndex(n => n > note) - 1;
         const x = index * keySpacing + 0.65;

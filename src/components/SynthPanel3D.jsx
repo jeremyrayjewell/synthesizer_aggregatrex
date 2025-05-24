@@ -1,27 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import KnobPanel from './KnobPanel';
 import Panel from './Panel';
 import SliderPanel from './SliderPanel';
 import { useSynthContext } from '../hooks/useSynth';
-import { Text, Html, Plane } from '@react-three/drei';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 /**
- * A component that creates a full 3D synthesizer control panel
- * with all the knobs and controls arranged in a visually appealing way.
+ * A component that creates a simplified 3D synthesizer control panel
+ * focused on filter knobs and envelope sliders.
  */
 const SynthPanel3D = () => {
-  const { synthParams, setSynthParams, panic } = useSynthContext();
+  const { synthParams, setSynthParams, panic, synth } = useSynthContext();
   const [panelRotation, setPanelRotation] = useState([0, 0, 0]);
-  
-  // Toggle panel tilt for better viewing angle
-  const togglePanelTilt = () => {
-    if (panelRotation[0] === 0) {
-      setPanelRotation([-Math.PI / 8, 0, 0]); // Tilt forward
-    } else {
-      setPanelRotation([0, 0, 0]); // Reset tilt
-    }
-  };
+  const panelRef = useRef();
+
+  // Memoize event handlers to prevent unnecessary rerenders
+  const togglePanelTilt = useCallback((e) => {
+    e.stopPropagation();
+    setPanelRotation(prev => prev[0] === 0 ? [-Math.PI / 8, 0, 0] : [0, 0, 0]);
+  }, []);
 
   // Create oscillator section controls
   const oscillatorControls = [
@@ -41,6 +39,9 @@ const SynthPanel3D = () => {
           ...synthParams,
           oscillator1: { ...synthParams.oscillator1, type }
         });
+        if (synth) {
+          synth.setParam('oscillator1Type', type);
+        }
       },
       valueFormatter: (val) => {
         return val <= 0.25 ? 'Saw' :
@@ -55,10 +56,15 @@ const SynthPanel3D = () => {
       value: synthParams.oscillator1.detune,
       min: -100,
       max: 100,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        oscillator1: { ...synthParams.oscillator1, detune: value }
-      }),
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          oscillator1: { ...synthParams.oscillator1, detune: value }
+        });
+        if (synth) {
+          synth.setParam('oscillator1Detune', value);
+        }
+      },
       valueFormatter: (val) => `${val.toFixed(1)}`,
       color: '#61dafb'
     },
@@ -68,10 +74,15 @@ const SynthPanel3D = () => {
       value: synthParams.oscillator1.mix,
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        oscillator1: { ...synthParams.oscillator1, mix: value }
-      }),
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          oscillator1: { ...synthParams.oscillator1, mix: value }
+        });
+        if (synth) {
+          synth.setParam('oscillator1Mix', value);
+        }
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#61dafb'
     },
@@ -91,6 +102,9 @@ const SynthPanel3D = () => {
           ...synthParams,
           oscillator2: { ...synthParams.oscillator2, type }
         });
+        if (synth) {
+          synth.setParam('oscillator2Type', type);
+        }
       },
       valueFormatter: (val) => {
         return val <= 0.25 ? 'Saw' :
@@ -105,10 +119,15 @@ const SynthPanel3D = () => {
       value: synthParams.oscillator2.detune,
       min: -100,
       max: 100,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        oscillator2: { ...synthParams.oscillator2, detune: value }
-      }),
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          oscillator2: { ...synthParams.oscillator2, detune: value }
+        });
+        if (synth) {
+          synth.setParam('oscillator2Detune', value);
+        }
+      },
       valueFormatter: (val) => `${val.toFixed(1)}`,
       color: '#f58742'
     },
@@ -118,20 +137,25 @@ const SynthPanel3D = () => {
       value: synthParams.oscillator2.mix,
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        oscillator2: { ...synthParams.oscillator2, mix: value }
-      }),
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          oscillator2: { ...synthParams.oscillator2, mix: value }
+        });
+        if (synth) {
+          synth.setParam('oscillator2Mix', value);
+        }
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#f58742'
     }
   ];
 
-  // Create filter section controls
-  const filterControls = [
+  // Enhanced filter knob controls
+  const filterKnobControls = [
     {
       id: 'filter-type',
-      label: 'Filter Type',
+      label: 'Type',
       value: synthParams.filter.type === 'lowpass' ? 0 :
              synthParams.filter.type === 'highpass' ? 0.5 : 1,
       min: 0,
@@ -143,108 +167,167 @@ const SynthPanel3D = () => {
           ...synthParams,
           filter: { ...synthParams.filter, type }
         });
+          // Update the synth engine directly to ensure immediate change
+        if (synth) {
+          synth.setFilter(type, synthParams.filter.frequency, synthParams.filter.Q);
+        }
       },
       valueFormatter: (val) => {
-        return val <= 0.33 ? 'LP' :
-               val <= 0.66 ? 'HP' : 'BP';
+        return val <= 0.33 ? 'LOW-PASS' :
+               val <= 0.66 ? 'HIGH-PASS' : 'BAND-PASS';
       },
-      color: '#8bc34a'
+      color: '#8bc34a',
+      sensitivity: 0.02 // Make it less sensitive for easier selection
     },
     {
       id: 'filter-cutoff',
       label: 'Cutoff',
-      value: synthParams.filter.frequency,
-      min: 20,
-      max: 20000,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        filter: { ...synthParams.filter, frequency: value }
-      }),
+      value: (Math.log(synthParams.filter.frequency) - Math.log(20)) / (Math.log(20000) - Math.log(20)), // Log scale for frequency
+      min: 0,
+      max: 1,
+      onChange: (value) => {
+        // Convert from normalized 0-1 to frequency range (20Hz-20kHz, logarithmic)
+        const frequency = Math.exp(Math.log(20) + value * (Math.log(20000) - Math.log(20)));
+        setSynthParams({
+          ...synthParams,
+          filter: { ...synthParams.filter, frequency }
+        });
+          // Update the synth engine directly
+        if (synth) {
+          synth.setFilter(synthParams.filter.type, frequency, synthParams.filter.Q);
+        }
+      },
       valueFormatter: (val) => {
-        return val < 1000 ? `${val.toFixed(0)}Hz` : `${(val/1000).toFixed(1)}kHz`;
+        const freq = Math.exp(Math.log(20) + val * (Math.log(20000) - Math.log(20)));
+        return freq < 1000 ? `${Math.round(freq)}Hz` : `${(freq/1000).toFixed(1)}kHz`;
       },
       color: '#8bc34a'
     },
     {
       id: 'filter-resonance',
       label: 'Resonance',
-      value: synthParams.filter.Q,
-      min: 0.1,
-      max: 20,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        filter: { ...synthParams.filter, Q: value }
-      }),
-      valueFormatter: (val) => `${val.toFixed(1)}`,
-      color: '#8bc34a'
-    },
-    {
-      id: 'filter-env-amount',
-      label: 'Env Amt',
-      value: synthParams.filter.envelopeAmount,
+      value: (synthParams.filter.Q - 0.1) / 19.9, // Normalize 0.1-20 to 0-1
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        filter: { ...synthParams.filter, envelopeAmount: value }
-      }),
-      valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
+      onChange: (value) => {
+        // Convert from normalized 0-1 to Q range (0.1-20)
+        const Q = 0.1 + value * 19.9;
+        setSynthParams({
+          ...synthParams,
+          filter: { ...synthParams.filter, Q }
+        });
+          // Update the synth engine directly
+        if (synth) {
+          synth.setFilter(synthParams.filter.type, synthParams.filter.frequency, Q);
+        }
+      },
+      valueFormatter: (val) => {
+        const Q = 0.1 + val * 19.9;
+        return Q.toFixed(1);
+      },
       color: '#8bc34a'
-    }
+    },
   ];
 
-  // Create envelope section controls
-  const envelopeControls = [
+  // Enhanced envelope slider controls with direct synth engine connection
+  const envelopeSliderControls = [
     {
-      id: 'attack',
+      id: 'attack-slider',
       label: 'Attack',
-      value: synthParams.envelope.attack,
-      min: 0.001,
-      max: 2,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        envelope: { ...synthParams.envelope, attack: value }
-      }),
-      valueFormatter: (val) => `${val.toFixed(2)}s`,
+      value: synthParams.envelope.attack / 2, // Normalize 0-2s to 0-1
+      min: 0,
+      max: 1,
+      onChange: (value) => {
+        const attack = value * 2; // Convert back to 0-2s range
+        setSynthParams({
+          ...synthParams,
+          envelope: { ...synthParams.envelope, attack }
+        });
+          // Update synth engine directly
+        if (synth) {
+          synth.setEnvelope(
+            attack,
+            synthParams.envelope.decay,
+            synthParams.envelope.sustain,
+            synthParams.envelope.release
+          );
+        }
+      },
+      valueFormatter: (val) => `${(val * 2).toFixed(2)}s`,
       color: '#ff5722'
     },
     {
-      id: 'decay',
+      id: 'decay-slider',
       label: 'Decay',
-      value: synthParams.envelope.decay,
-      min: 0.001,
-      max: 2,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        envelope: { ...synthParams.envelope, decay: value }
-      }),
-      valueFormatter: (val) => `${val.toFixed(2)}s`,
+      value: synthParams.envelope.decay / 2, // Normalize 0-2s to 0-1
+      min: 0,
+      max: 1,
+      onChange: (value) => {
+        const decay = value * 2; // Convert back to 0-2s range
+        setSynthParams({
+          ...synthParams,
+          envelope: { ...synthParams.envelope, decay }
+        });
+          // Update synth engine directly
+        if (synth) {
+          synth.setEnvelope(
+            synthParams.envelope.attack,
+            decay,
+            synthParams.envelope.sustain,
+            synthParams.envelope.release
+          );
+        }
+      },
+      valueFormatter: (val) => `${(val * 2).toFixed(2)}s`,
       color: '#ff5722'
     },
     {
-      id: 'sustain',
+      id: 'sustain-slider',
       label: 'Sustain',
       value: synthParams.envelope.sustain,
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        envelope: { ...synthParams.envelope, sustain: value }
-      }),
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          envelope: { ...synthParams.envelope, sustain: value }
+        });
+          // Update synth engine directly
+        if (synth) {
+          synth.setEnvelope(
+            synthParams.envelope.attack,
+            synthParams.envelope.decay,
+            value,
+            synthParams.envelope.release
+          );
+        }
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#ff5722'
     },
     {
-      id: 'release',
+      id: 'release-slider',
       label: 'Release',
-      value: synthParams.envelope.release,
-      min: 0.001,
-      max: 5,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        envelope: { ...synthParams.envelope, release: value }
-      }),
-      valueFormatter: (val) => `${val.toFixed(2)}s`,
+      value: synthParams.envelope.release / 5, // Normalize 0-5s to 0-1
+      min: 0,
+      max: 1,
+      onChange: (value) => {
+        const release = value * 5; // Convert back to 0-5s range
+        setSynthParams({
+          ...synthParams,
+          envelope: { ...synthParams.envelope, release }
+        });
+          // Update synth engine directly
+        if (synth) {
+          synth.setEnvelope(
+            synthParams.envelope.attack,
+            synthParams.envelope.decay,
+            synthParams.envelope.sustain,
+            release
+          );
+        }
+      },
+      valueFormatter: (val) => `${(val * 5).toFixed(2)}s`,
       color: '#ff5722'
     }
   ];
@@ -257,13 +340,18 @@ const SynthPanel3D = () => {
       value: synthParams.effects.delay.time,
       min: 0.05,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        effects: { 
-          ...synthParams.effects, 
-          delay: { ...synthParams.effects.delay, time: value }
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          effects: { 
+            ...synthParams.effects, 
+            delay: { ...synthParams.effects.delay, time: value }
+          }
+        });
+        if (synth) {
+          synth.setParam('delayTime', value);
         }
-      }),
+      },
       valueFormatter: (val) => `${val.toFixed(2)}s`,
       color: '#9c27b0'
     },
@@ -273,13 +361,18 @@ const SynthPanel3D = () => {
       value: synthParams.effects.delay.feedback,
       min: 0,
       max: 0.9,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        effects: { 
-          ...synthParams.effects, 
-          delay: { ...synthParams.effects.delay, feedback: value }
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          effects: { 
+            ...synthParams.effects, 
+            delay: { ...synthParams.effects.delay, feedback: value }
+          }
+        });
+        if (synth) {
+          synth.setParam('delayFeedback', value);
         }
-      }),
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#9c27b0'
     },
@@ -289,13 +382,18 @@ const SynthPanel3D = () => {
       value: synthParams.effects.reverb.size,
       min: 0.1,
       max: 0.9,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        effects: { 
-          ...synthParams.effects, 
-          reverb: { ...synthParams.effects.reverb, size: value }
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          effects: { 
+            ...synthParams.effects, 
+            reverb: { ...synthParams.effects.reverb, size: value }
+          }
+        });
+        if (synth) {
+          synth.setParam('reverbSize', value);
         }
-      }),
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#9c27b0'
     },
@@ -374,10 +472,15 @@ const SynthPanel3D = () => {
       value: synthParams.oscillator1.mix,
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        oscillator1: { ...synthParams.oscillator1, mix: value }
-      }),
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          oscillator1: { ...synthParams.oscillator1, mix: value }
+        });
+        if (synth) {
+          synth.setParam('oscillator1Mix', value);
+        }
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#ff9800'
     },
@@ -387,10 +490,15 @@ const SynthPanel3D = () => {
       value: synthParams.oscillator2.mix,
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        oscillator2: { ...synthParams.oscillator2, mix: value }
-      }),
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          oscillator2: { ...synthParams.oscillator2, mix: value }
+        });
+        if (synth) {
+          synth.setParam('oscillator2Mix', value);
+        }
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#ff9800'
     },
@@ -400,13 +508,18 @@ const SynthPanel3D = () => {
       value: synthParams.effects.delay.mix,
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        effects: { 
-          ...synthParams.effects, 
-          delay: { ...synthParams.effects.delay, mix: value }
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          effects: { 
+            ...synthParams.effects, 
+            delay: { ...synthParams.effects.delay, mix: value }
+          }
+        });
+        if (synth) {
+          synth.setParam('delayMix', value);
         }
-      }),
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#ff9800'
     },
@@ -416,33 +529,51 @@ const SynthPanel3D = () => {
       value: synthParams.effects.reverb.mix,
       min: 0,
       max: 1,
-      onChange: (value) => setSynthParams({
-        ...synthParams,
-        effects: { 
-          ...synthParams.effects, 
-          reverb: { ...synthParams.effects.reverb, mix: value }
+      onChange: (value) => {
+        setSynthParams({
+          ...synthParams,
+          effects: { 
+            ...synthParams.effects, 
+            reverb: { ...synthParams.effects.reverb, mix: value }
+          }
+        });
+        if (synth) {
+          synth.setParam('reverbMix', value);
         }
-      }),
+      },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#ff9800'
     }
   ];
 
-  // Create interactive panic button
+  // Enhanced interactive panic button
   const PanicButton = () => {
     const [isPressed, setIsPressed] = useState(false);
+    const buttonRef = useRef();
     
-    const handlePanic = () => {
+    const handlePanic = useCallback((e) => {
+      e.stopPropagation();
       setIsPressed(true);
-      panic();
+      if (panic) panic();
       setTimeout(() => setIsPressed(false), 300);
-    };
+    }, []);
     
     return (
-      <group position={[0, -4, 0.1]} onClick={handlePanic}>
-        <mesh position={[0, 0, 0.05]} scale={isPressed ? 0.95 : 1}>
+      <group position={[0, -4, 0.1]} ref={buttonRef}>
+        <mesh 
+          position={[0, 0, 0.05]} 
+          scale={isPressed ? 0.95 : 1}
+          onPointerDown={handlePanic}
+          onPointerUp={() => setIsPressed(false)}
+          onPointerOut={() => setIsPressed(false)}
+        >
           <cylinderGeometry args={[0.8, 0.8, 0.3, 32]} />
-          <meshStandardMaterial color={isPressed ? '#cc0000' : '#ff0000'} roughness={0.7} />
+          <meshStandardMaterial 
+            color={isPressed ? '#cc0000' : '#ff0000'} 
+            roughness={0.7}
+            emissive={isPressed ? '#550000' : '#330000'} 
+            emissiveIntensity={0.5}
+          />
         </mesh>
         <Text
           position={[0, 0, 0.25]}
@@ -450,6 +581,7 @@ const SynthPanel3D = () => {
           color="white"
           anchorX="center"
           anchorY="middle"
+          font="/textures/fonts/bold.ttf"
         >
           PANIC
         </Text>
@@ -457,119 +589,83 @@ const SynthPanel3D = () => {
     );
   };
 
-  // Return the complete synth panel with all control sections
+  // Create master volume control
+  const masterVolumeControl = {
+    id: 'master-volume',
+    label: 'Volume',
+    value: synthParams.master.volume,
+    min: 0,
+    max: 1,
+    onChange: (value) => {
+      setSynthParams({
+        ...synthParams,
+        master: { ...synthParams.master, volume: value }
+      });
+      
+      // Update master gain directly for immediate effect
+      if (synth && synth.masterGain) {
+        synth.masterGain.gain.setValueAtTime(
+          value,
+          synth.audioContext.currentTime
+        );
+      }
+    },
+    valueFormatter: (val) => `${Math.round(val * 100)}%`,
+    color: '#e91e63'
+  };
+
+  // Return the complete synth panel with simplified controls focused on filters and envelopes
   return (
-    <group rotation={panelRotation}>
+    <group rotation={panelRotation} ref={panelRef}>
       {/* Main panel background */}
       <Panel 
-        width={24} 
-        height={12} 
+        width={16} 
+        height={10} 
         depth={0.5}
         title="SYNTHESIZER AGGREGATREX"
         color="#111111"
         borderColor="#333333"
         useMaterial={true}
       >
-        {/* Control panels arranged inside the main panel */}
         <group>
-          {/* Oscillator section */}
+          {/* Filter knob section */}
           <KnobPanel
-            controls={oscillatorControls}
-            title="OSCILLATORS"
-            rows={2}
+            controls={filterKnobControls}
+            title="FILTER KNOBS"
+            rows={1}
             cols={3}
             spacing={1.5}
-            position={[-8, 2, 0.1]}
-            knobColor="#61dafb"
-            panelColor="#1a1a1a"
-          />
-          
-          {/* Filter section */}
-          <KnobPanel
-            controls={filterControls}
-            title="FILTER"
-            rows={1}
-            cols={4}
-            spacing={1.5}
-            position={[3, 2, 0.1]}
+            position={[0, 2, 0.1]}
             knobColor="#8bc34a"
             panelColor="#1a1a1a"
           />
           
-          {/* Envelope section */}
-          <KnobPanel
-            controls={envelopeControls}
+          {/* Envelope slider section */}
+          <SliderPanel
+            controls={envelopeSliderControls}
             title="ENVELOPE"
-            rows={1}
-            cols={4}
-            spacing={1.5}
-            position={[-8, -1.5, 0.1]}
-            knobColor="#ff5722"
-            panelColor="#1a1a1a"
-          />
-          
-          {/* Effects section */}
-          <KnobPanel
-            controls={effectsControls}
-            title="EFFECTS & MASTER"
-            rows={1}
-            cols={4}
-            spacing={1.5}
-            position={[3, -1.5, 0.1]}
-            knobColor="#9c27b0"
-            panelColor="#1a1a1a"
-          />
-          
-          {/* Filter slider section */}
-          <SliderPanel
-            controls={filterSliderControls}
-            title="FILTER SLIDERS"
-            rows={3}
-            cols={1}
-            spacing={1.5}
-            position={[-12, 2, 0.1]}
-            sliderColor="#8bc34a"
-            panelColor="#1a1a1a"
-            orientation="vertical"
-          />
-          
-          {/* Modulation slider section */}
-          <SliderPanel
-            controls={modulationSliderControls}
-            title="MODULATION SLIDERS"
-            rows={1}
-            cols={4}
-            spacing={1.5}
-            position={[-12, -1.5, 0.1]}
-            sliderColor="#ff9800"
-            panelColor="#1a1a1a"
             orientation="horizontal"
-          />
-          
-          {/* Filter sliders - vertical orientation */}
-          <SliderPanel
-            controls={filterSliderControls}
-            title="FILTER CONTROLS"
-            orientation="vertical"
-            width={3}
-            height={6}
-            position={[-3, 0, 0.1]}
-            color="#1a1a1a"
-            sliderLength={3}
-            sliderThickness={0.15}
-          />
-          
-          {/* Modulation mix sliders - horizontal orientation */}
-          <SliderPanel
-            controls={modulationSliderControls}
-            title="MIX CONTROLS"
-            orientation="horizontal"
-            width={16}
-            height={2.5}
-            position={[0, -4.5, 0.1]}
+            width={12}
+            height={3}
+            position={[0, -2, 0.1]}
             color="#1a1a1a"
             sliderLength={2}
             sliderThickness={0.12}
+          />
+          
+          {/* Master volume knob */}
+          <KnobPanel
+            controls={[masterVolumeControl]}
+            title="MASTER"
+            rows={1}
+            cols={1}
+            spacing={1.5}
+            position={[6.5, 2, 0.1]}
+            knobColor="#e91e63"
+            panelColor="#1a1a1a"
+            width={2.5}
+            height={2.5}
+            showValues={true}
           />
           
           {/* Panic button */}
@@ -577,8 +673,8 @@ const SynthPanel3D = () => {
           
           {/* View angle toggle button */}
           <group 
-            position={[10.5, -4, 0.1]} 
-            onClick={togglePanelTilt}
+            position={[6.5, -4, 0.1]} 
+            onPointerDown={togglePanelTilt}
           >
             <mesh position={[0, 0, 0.05]}>
               <boxGeometry args={[1.2, 0.5, 0.2]} />

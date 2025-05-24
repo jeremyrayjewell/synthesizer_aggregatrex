@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, startTransition } from 'react';
 import { SynthProvider, useSynth } from './hooks/useSynth';
 import { useMIDI } from './hooks/useMIDI';
 import useQwertyInput from './hooks/useQwertyInput';
@@ -176,11 +176,42 @@ const SynthController = () => {
   );
 };
 
-const App = () => (
-  <SynthProvider>
-    <SynthController />
-    <VoiceDebugger />
-  </SynthProvider>
-);
+const App = () => {
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    // Wait for initial resource loading
+    startTransition(() => {
+      setAppReady(true);
+    });
+  }, []);
+
+  if (!appReady) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#000000'
+      }}>
+        <h1 style={{ color: '#ffffff' }}>Loading Synthesizer...</h1>
+      </div>
+    );
+  }
+
+  return (
+    <React.StrictMode>
+      <SynthProvider>
+        <SynthController />
+        <VoiceDebugger />
+      </SynthProvider>
+    </React.StrictMode>
+  );
+};
 
 export default App;

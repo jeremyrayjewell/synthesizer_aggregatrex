@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -11,108 +10,117 @@ const Knob = ({
   size = 1,
   label = 'Knob',
   color = '#61dafb',
-  valueFormatter = (val) => val.toFixed(2),
-  sensitivity = 0.01
-}) => {
-  const knobRef = useRef();
-  const indicatorRef = useRef();
-  const [isDragging, setDragging] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [initialValue, setInitialValue] = useState(value);
+  valueFormatter = (val) => val.toFixed(2)
+}) => {  const knobRef = useRef();
+  const [isDragging, setIsDragging] = useState(false);
   const [displayValue, setDisplayValue] = useState(valueFormatter(value));
-  const [hovered, setHovered] = useState(false);
+  const [currentValue, setCurrentValue] = useState(value);
+  const dragStartRef = useRef({ y: 0, value: 0 });
+  const latestValueRef = useRef(value);
+  const lastUpdateTime = useRef(0);
+  const shouldAcceptPropUpdates = useRef(true);
+  
+  // Calculate rotation angle from value
+  const valueToAngle = (val) => (val - min) / (max - min) * Math.PI * 1.5 - Math.PI * 0.75;
 
-  // Normalize value to 0-1 range and calculate rotation angle
-  const normalized = (value - min) / (max - min);
-  const angle = normalized * Math.PI * 1.5 - Math.PI * 0.75;
-
-  // Handle pointer down
-  const handlePointerDown = (e) => {
-    e.stopPropagation();
-    setDragging(true);
-    setStartY(e.clientY);
-    setInitialValue(value);
-    // Capture pointer to receive events outside of the element
-    e.target.setPointerCapture(e.pointerId);
-  };
-
-  // Handle pointer move for dragging
-  const handlePointerMove = (e) => {
-    if (!isDragging) return;
-    e.stopPropagation();
-    // Calculate delta based on vertical mouse movement
-    // Adjust sensitivity to make knobs feel more precise
-    const delta = (startY - e.clientY) * sensitivity;
-    const newValue = clamp(initialValue + delta * (max - min), min, max);
-    onChange(newValue);
-  };
-
-  // Handle pointer up to end dragging
-  const handlePointerUp = (e) => {
-    if (isDragging) {
-      e.target.releasePointerCapture(e.pointerId);
-      setDragging(false);
-    }
-  };
-
-  // Update knob rotation with smooth animation
-  useFrame(() => {
-    if (knobRef.current) {
-      // Smoothly animate to target angle
-      knobRef.current.rotation.y = THREE.MathUtils.lerp(
-        knobRef.current.rotation.y,
-        angle,
-        0.2
-      );
-    }
-    
-    // Update indicator position
-    if (indicatorRef.current) {
-      indicatorRef.current.position.x = Math.sin(angle) * (size * 0.3);
-      indicatorRef.current.position.z = Math.cos(angle) * (size * 0.3);
-    }
-  });
-
-  // Update display value when value changes
+  // Update display value and rotation only when we should accept prop updates
   useEffect(() => {
-    setDisplayValue(valueFormatter(value));
-  }, [value, valueFormatter]);
-  
-  // Color calculations based on state
-  const baseColor = new THREE.Color(color);
-  const knobColor = isDragging 
-    ? baseColor.clone().addScalar(0.2) 
-    : hovered 
-      ? baseColor.clone().addScalar(0.1) 
-      : baseColor;
-  
+    if (shouldAcceptPropUpdates.current && knobRef.current) {
+      setCurrentValue(value);
+      setDisplayValue(valueFormatter(value));
+      latestValueRef.current = value;
+      knobRef.current.rotation.y = valueToAngle(value);
+    }
+  }, [value, min, max, valueFormatter]);  const handlePointerDown = (e) => {
+    console.log('Knob pointer down:', label);
+    e.stopPropagation();
+    
+    // Block prop updates during drag
+    shouldAcceptPropUpdates.current = false;
+    
+    dragStartRef.current = {
+      y: e.clientY,
+      value: latestValueRef.current
+    };
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (!isDragging) return;
+      
+      // Throttle updates to avoid overwhelming the system
+      const now = Date.now();
+      if (now - lastUpdateTime.current < 16) return; // ~60fps
+      lastUpdateTime.current = now;
+      
+      console.log('Knob moving:', label);
+      const delta = (dragStartRef.current.y - e.clientY) * 0.01;
+      const newValue = THREE.MathUtils.clamp(
+        dragStartRef.current.value + delta,
+        min,
+        max
+      );      console.log('Knob new value:', newValue);
+        // Update visual rotation immediately for smooth feedback
+      if (knobRef.current) {
+        const newAngle = valueToAngle(newValue);
+        knobRef.current.rotation.y = newAngle;
+      }
+        // Update current value and display immediately for smooth visual feedback
+      setCurrentValue(newValue);
+      setDisplayValue(valueFormatter(newValue));
+      latestValueRef.current = newValue;
+        // DO NOT call onChange during drag - only update visuals
+      // onChange(newValue);
+    };    const handleUp = (e) => {
+      console.log('Knob pointer up:', label);
+      setIsDragging(false);
+      
+      // Call onChange with the latest dragged value
+      onChange(latestValueRef.current);
+      
+      // Re-enable prop updates after a brief delay to prevent race conditions
+      setTimeout(() => {
+        shouldAcceptPropUpdates.current = true;
+      }, 50);
+    };
+
+    if (isDragging) {
+      console.log('Adding knob listeners');
+      window.addEventListener('mousemove', handleMove, { passive: false });
+      window.addEventListener('mouseup', handleUp);
+      window.addEventListener('mouseleave', handleUp);
+    }
+
+    return () => {
+      if (isDragging) {
+        console.log('Removing knob listeners');
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('mouseup', handleUp);
+        window.removeEventListener('mouseleave', handleUp);
+      }
+    };  }, [isDragging, min, max, onChange, label, valueFormatter]);
+
   return (
-    <group position={[0, 0, 0]}>
-      {/* Knob base */}
-      <mesh 
+    <group>
+      <mesh
         ref={knobRef}
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerOut={handlePointerUp}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
       >
         <cylinderGeometry args={[size * 0.4, size * 0.35, size * 0.2, 32]} />
         <meshStandardMaterial 
-          color={knobColor} 
-          roughness={0.7} 
+          color={isDragging ? new THREE.Color(color).addScalar(0.2) : color}
+          roughness={0.7}
           metalness={0.3}
         />
         
         {/* Indicator dot */}
-        <mesh ref={indicatorRef} position={[0, size * 0.11, size * 0.3]}>
+        <mesh position={[0, 0.11, size * 0.3]}>
           <sphereGeometry args={[size * 0.05, 8, 8]} />
-          <meshStandardMaterial color="#ffffff" />
+          <meshStandardMaterial color="white" />
         </mesh>
       </mesh>
-      
-      {/* Knob label */}
+
       <Text
         position={[0, -size * 0.4, 0]}
         fontSize={size * 0.15}
@@ -121,10 +129,7 @@ const Knob = ({
         anchorY="middle"
       >
         {label}
-      </Text>
-      
-      {/* Display value */}
-      <Text
+      </Text>      <Text
         position={[0, size * 0.4, 0]}
         fontSize={size * 0.12}
         color="white"
@@ -136,9 +141,5 @@ const Knob = ({
     </group>
   );
 };
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
 
 export default Knob;

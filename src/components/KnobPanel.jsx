@@ -1,6 +1,7 @@
 import React from 'react';
 import Panel from './Panel';
 import Knob from './Knob';
+import { Text } from '@react-three/drei';
 
 const KnobPanel = ({ 
   controls = [], 
@@ -10,24 +11,27 @@ const KnobPanel = ({
   spacing = 1.2,
   panelWidth = null,
   panelHeight = null,
+  width = null,
+  height = null,
   panelColor = '#222222',
   knobSize = 1,
   knobColor = '#61dafb',
   position = [0, 0, 0],
-  rotation = [0, 0, 0]
+  rotation = [0, 0, 0],
+  showValues = false
 }) => {
   // Calculate columns if not specified
   const calculatedCols = cols || Math.ceil(controls.length / rows);
   
   // Calculate panel dimensions if not specified
-  const width = panelWidth || (calculatedCols * spacing + 1);
-  const height = panelHeight || (rows * spacing + 1);
+  const panelWidth2 = width || panelWidth || (calculatedCols * spacing + 1);
+  const panelHeight2 = height || panelHeight || (rows * spacing + 1);
 
   return (
     <group position={position} rotation={rotation}>
       <Panel 
-        width={width} 
-        height={height} 
+        width={panelWidth2} 
+        height={panelHeight2} 
         title={title}
         color={panelColor}
       >
@@ -52,6 +56,22 @@ const KnobPanel = ({
                 valueFormatter={ctrl.valueFormatter}
                 sensitivity={ctrl.sensitivity || 0.01}
               />
+              
+              {/* Show larger value display when showValues is true */}
+              {showValues && (
+                <Text
+                  position={[0, -knobSize * 0.75, 0]}
+                  fontSize={knobSize * 0.2}
+                  color="white"
+                  anchorX="center"
+                  anchorY="middle"
+                  fontWeight="bold"
+                  outlineWidth={1}
+                  outlineColor="#000000"
+                >
+                  {ctrl.valueFormatter ? ctrl.valueFormatter(ctrl.value) : ctrl.value.toFixed(2)}
+                </Text>
+              )}
             </group>
           );
         })}

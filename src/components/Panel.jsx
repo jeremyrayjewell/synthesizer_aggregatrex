@@ -1,59 +1,82 @@
-import React, { useState } from 'react';
-import { Text } from '@react-three/drei';
-import { useTexture } from '@react-three/drei';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import { Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-const Panel = ({ 
-  width = 5, 
-  height = 3, 
-  depth = 0.2,
-  title = '',
-  color = '#222222',
+// Separate texture loader component to handle Suspense boundary
+const TexturedMaterial = ({ color, width, height, textures }) => {
+  useEffect(() => {
+    if (textures) {
+      const setupTexture = (texture) => {
+        if (texture) {
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+          texture.repeat.set(width * 0.4, height * 0.4);
+        }
+      };
+
+      setupTexture(textures.map);
+      setupTexture(textures.roughnessMap);
+      setupTexture(textures.displacementMap);
+    }
+  }, [textures, width, height]);
+
+  return (
+    <meshStandardMaterial 
+      map={textures.map}
+      roughnessMap={textures.roughnessMap}
+      displacementMap={textures.displacementMap}
+      color={color}
+      displacementScale={0.01}
+      roughness={0.9}
+      metalness={0.1}
+    />
+  );
+};
+
+const PanelContent = ({ 
+  width, 
+  height, 
+  depth,
+  title,
+  color,
   children,
-  position = [0, 0, 0],
-  rotation = [0, 0, 0],
-  border = true,
-  borderColor = '#444444',
-  borderWidth = 0.05,
-  useMaterial = true
-}) => {  const [hovered, setHovered] = useState(false);
+  position,
+  rotation,
+  border,
+  borderColor,
+  borderWidth,
+  useMaterial 
+}) => {
+  const [hovered, setHovered] = useState(false);
+  const meshRef = useRef();
   
-  // Always load textures but only use them if useMaterial is true
+  // Always call useTexture, even if we don't use the textures
   const textures = useTexture({
     map: '/textures/leather/brown_leather_albedo_4k.jpg',
     roughnessMap: '/textures/leather/brown_leather_rough_4k.jpg',
     displacementMap: '/textures/leather/brown_leather_disp_4k.png'
   });
-  
-  // Configure texture settings
-  if (useMaterial && textures) {
-    textures.map.wrapS = textures.map.wrapT = THREE.RepeatWrapping;
-    textures.roughnessMap.wrapS = textures.roughnessMap.wrapT = THREE.RepeatWrapping;
-    textures.displacementMap.wrapS = textures.displacementMap.wrapT = THREE.RepeatWrapping;
-    
-    // Scale textures based on panel size
-    const repeatX = width * 0.4;
-    const repeatY = height * 0.4;
-    textures.map.repeat.set(repeatX, repeatY);
-    textures.roughnessMap.repeat.set(repeatX, repeatY);
-    textures.displacementMap.repeat.set(repeatX, repeatY);
-  }
-  
+
   return (
     <group position={position} rotation={rotation}>
       {/* Panel base */}
       <mesh
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
+        ref={meshRef}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          setHovered(false);
+        }}
       >
-        <boxGeometry args={[width, height, depth]} />        {useMaterial ? (
-          <meshStandardMaterial 
-            map={textures.map}
-            roughnessMap={textures.roughnessMap}
-            displacementMap={textures.displacementMap}
+        <boxGeometry args={[width, height, depth]} />
+        {useMaterial ? (
+          <TexturedMaterial 
             color={color}
-            displacementScale={0.01}
-            roughness={0.9}
+            width={width}
+            height={height}
+            textures={textures}
           />
         ) : (
           <meshStandardMaterial 
@@ -64,7 +87,7 @@ const Panel = ({
         )}
       </mesh>
       
-      {/* Border frame if enabled */}
+      {/* Border frame */}
       {border && (
         <lineSegments>
           <edgesGeometry args={[new THREE.BoxGeometry(width + borderWidth, height + borderWidth, depth + borderWidth)]} />
@@ -72,7 +95,7 @@ const Panel = ({
         </lineSegments>
       )}
       
-      {/* Panel title if provided */}
+      {/* Panel title */}
       {title && (
         <Text
           position={[0, height/2 - 0.3, depth/2 + 0.01]}
@@ -86,11 +109,27 @@ const Panel = ({
         </Text>
       )}
       
-      {/* Children components (knobs, sliders, etc.) */}
+      {/* Add a decorative divider line below the title */}
+      {title && (
+        <mesh position={[0, height/2 - 0.5, depth/2 + 0.01]}>
+          <boxGeometry args={[width * 0.8, 0.02, 0.01]} />
+          <meshStandardMaterial color={borderColor} emissive={borderColor} emissiveIntensity={0.2} />
+        </mesh>
+      )}
+      
+      {/* Child components */}
       <group position={[0, 0, depth/2 + 0.01]}>
         {children}
       </group>
     </group>
+  );
+};
+
+const Panel = (props) => {
+  return (
+    <Suspense fallback={null}>
+      <PanelContent {...props} />
+    </Suspense>
   );
 };
 
