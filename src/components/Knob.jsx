@@ -12,35 +12,45 @@ const Knob = ({
   color = '#61dafb',
   valueFormatter = (val) => val.toFixed(2)
 }) => {  const knobRef = useRef();
+  const displayTextRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
-  const [displayValue, setDisplayValue] = useState(valueFormatter(value));
-  const [currentValue, setCurrentValue] = useState(value);
   const dragStartRef = useRef({ y: 0, value: 0 });
-  const latestValueRef = useRef(value);
+  const currentDragValue = useRef(value);
   const lastUpdateTime = useRef(0);
-  const shouldAcceptPropUpdates = useRef(true);
+  const hasInitialized = useRef(false);
+  const blockPropUpdates = useRef(false);
   
   // Calculate rotation angle from value
-  const valueToAngle = (val) => (val - min) / (max - min) * Math.PI * 1.5 - Math.PI * 0.75;
-
-  // Update display value and rotation only when we should accept prop updates
+  const valueToAngle = (val) => (val - min) / (max - min) * Math.PI * 1.5 - Math.PI * 0.75;  // Update display value and rotation only when not blocked
   useEffect(() => {
-    if (shouldAcceptPropUpdates.current && knobRef.current) {
-      setCurrentValue(value);
-      setDisplayValue(valueFormatter(value));
-      latestValueRef.current = value;
+    if (!blockPropUpdates.current && knobRef.current) {
+      currentDragValue.current = value;
       knobRef.current.rotation.y = valueToAngle(value);
+      // Update display text directly
+      if (displayTextRef.current) {
+        displayTextRef.current.text = valueFormatter(value);
+      }
+      hasInitialized.current = true;
     }
-  }, [value, min, max, valueFormatter]);  const handlePointerDown = (e) => {
+  }, [value, min, max, valueFormatter]);
+  
+  // Initialize display text on first render
+  useEffect(() => {
+    if (displayTextRef.current && !hasInitialized.current) {
+      displayTextRef.current.text = valueFormatter(value);
+      hasInitialized.current = true;
+    }
+  }, [value, valueFormatter]);
+  const handlePointerDown = (e) => {
     console.log('Knob pointer down:', label);
     e.stopPropagation();
     
-    // Block prop updates during drag
-    shouldAcceptPropUpdates.current = false;
+    // Block prop updates IMMEDIATELY
+    blockPropUpdates.current = true;
     
     dragStartRef.current = {
       y: e.clientY,
-      value: latestValueRef.current
+      value: currentDragValue.current
     };
     setIsDragging(true);
   };
@@ -55,33 +65,36 @@ const Knob = ({
       lastUpdateTime.current = now;
       
       console.log('Knob moving:', label);
-      const delta = (dragStartRef.current.y - e.clientY) * 0.01;
+      const delta = (dragStartRef.current.y - e.clientY) * 0.005 * (max - min);
       const newValue = THREE.MathUtils.clamp(
         dragStartRef.current.value + delta,
         min,
         max
-      );      console.log('Knob new value:', newValue);
-        // Update visual rotation immediately for smooth feedback
+      );
+
+      console.log('Knob new value:', newValue);        // Update visual rotation immediately for smooth feedback
       if (knobRef.current) {
         const newAngle = valueToAngle(newValue);
         knobRef.current.rotation.y = newAngle;
       }
-        // Update current value and display immediately for smooth visual feedback
-      setCurrentValue(newValue);
-      setDisplayValue(valueFormatter(newValue));
-      latestValueRef.current = newValue;
-        // DO NOT call onChange during drag - only update visuals
-      // onChange(newValue);
+      
+      // Update display text directly for smooth visual feedback
+      if (displayTextRef.current) {
+        displayTextRef.current.text = valueFormatter(newValue);
+      }
+      
+      // Store the current drag value
+      currentDragValue.current = newValue;
     };    const handleUp = (e) => {
       console.log('Knob pointer up:', label);
       setIsDragging(false);
       
       // Call onChange with the latest dragged value
-      onChange(latestValueRef.current);
+      onChange(currentDragValue.current);
       
       // Re-enable prop updates after a brief delay to prevent race conditions
       setTimeout(() => {
-        shouldAcceptPropUpdates.current = true;
+        blockPropUpdates.current = false;
       }, 50);
     };
 
@@ -99,24 +112,24 @@ const Knob = ({
         window.removeEventListener('mouseup', handleUp);
         window.removeEventListener('mouseleave', handleUp);
       }
-    };  }, [isDragging, min, max, onChange, label, valueFormatter]);
-
+    };
+  }, [isDragging, min, max, onChange, label, valueFormatter]);
   return (
     <group>
       <mesh
         ref={knobRef}
         onPointerDown={handlePointerDown}
-      >
-        <cylinderGeometry args={[size * 0.4, size * 0.35, size * 0.2, 32]} />
+        rotation={[Math.PI / 2, 0, 0]} // Rotate 90 degrees to face viewer
+      >        <cylinderGeometry args={[size * 0.3, size * 0.25, size * 0.15, 32]} />
         <meshStandardMaterial 
           color={isDragging ? new THREE.Color(color).addScalar(0.2) : color}
           roughness={0.7}
           metalness={0.3}
         />
         
-        {/* Indicator dot */}
-        <mesh position={[0, 0.11, size * 0.3]}>
-          <sphereGeometry args={[size * 0.05, 8, 8]} />
+        {/* Indicator dot - positioned on the front face */}
+        <mesh position={[0, size * 0.22, 0.08]}>
+          <sphereGeometry args={[size * 0.04, 8, 8]} />
           <meshStandardMaterial color="white" />
         </mesh>
       </mesh>
@@ -130,13 +143,14 @@ const Knob = ({
       >
         {label}
       </Text>      <Text
+        ref={displayTextRef}
         position={[0, size * 0.4, 0]}
         fontSize={size * 0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
       >
-        {displayValue}
+        {/* Text content updated via ref */}
       </Text>
     </group>
   );

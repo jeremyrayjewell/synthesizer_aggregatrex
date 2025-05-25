@@ -14,12 +14,12 @@ const Slider = ({
   thickness = 0.1,
   orientation = 'horizontal'
 }) => {  const handleRef = useRef();
+  const displayTextRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
-  const [displayValue, setDisplayValue] = useState(valueFormatter(value));
-  const [currentValue, setCurrentValue] = useState(value);
   const dragStartRef = useRef({ pos: 0, value: 0 });
-  const latestValueRef = useRef(value);
-  const shouldAcceptPropUpdates = useRef(true);
+  const currentDragValue = useRef(value);
+  const hasInitialized = useRef(false);
+  const blockPropUpdates = useRef(false);
   
   // Calculate handle position directly from value
   const calculatePosition = (val) => {
@@ -28,26 +28,37 @@ const Slider = ({
       ? [normalized * length - length / 2, 0, 0.1]
       : [0, normalized * length - length / 2, 0.1];
   };
-  // Update handle position when value changes (but only when we should accept prop updates)
+  // Update handle position when value changes (but only when not blocked)
   useEffect(() => {
     if (!handleRef.current) return;
-    if (shouldAcceptPropUpdates.current) {
+    if (!blockPropUpdates.current) {
       const targetPos = calculatePosition(value);
       handleRef.current.position.set(...targetPos);
-      setCurrentValue(value);
-      setDisplayValue(valueFormatter(value));
-      latestValueRef.current = value;
+      currentDragValue.current = value;
+      // Update display text directly
+      if (displayTextRef.current) {
+        displayTextRef.current.text = valueFormatter(value);
+      }
+      hasInitialized.current = true;
     }
-  }, [value, min, max, orientation, length, valueFormatter]);  const handlePointerDown = (e) => {
+  }, [value, min, max, orientation, length, valueFormatter]);
+  
+  // Initialize display text on first render
+  useEffect(() => {
+    if (displayTextRef.current && !hasInitialized.current) {
+      displayTextRef.current.text = valueFormatter(value);
+      hasInitialized.current = true;
+    }
+  }, [value, valueFormatter]);  const handlePointerDown = (e) => {
     console.log('Slider pointer down:', label);
     e.stopPropagation();
     
-    // Block prop updates during drag
-    shouldAcceptPropUpdates.current = false;
+    // Block prop updates IMMEDIATELY
+    blockPropUpdates.current = true;
     
     dragStartRef.current = {
       pos: orientation === 'horizontal' ? e.clientX : e.clientY,
-      value: latestValueRef.current
+      value: currentDragValue.current
     };
     setIsDragging(true);
   };
@@ -55,10 +66,9 @@ const Slider = ({
   useEffect(() => {
     const handleMove = (e) => {
       if (!isDragging) return;
-      
-      console.log('Slider moving:', label);
+        console.log('Slider moving:', label);
       const currentPos = orientation === 'horizontal' ? e.clientX : e.clientY;
-      const delta = (currentPos - dragStartRef.current.pos) * 0.01;
+      const delta = (currentPos - dragStartRef.current.pos) * 0.005 * (max - min);
       const multiplier = orientation === 'horizontal' ? 1 : -1;
       
       const newValue = THREE.MathUtils.clamp(
@@ -68,15 +78,20 @@ const Slider = ({
       );
 
       console.log('Slider new value:', newValue);
-        // Update visual position immediately for smooth feedback
+      
+      // Update visual position immediately for smooth feedback
       if (handleRef.current) {
         const newPos = calculatePosition(newValue);
         handleRef.current.position.set(...newPos);
       }
-        // Update current value and display immediately for smooth visual feedback
-      setCurrentValue(newValue);
-      setDisplayValue(valueFormatter(newValue));
-      latestValueRef.current = newValue;
+      
+      // Update display text directly for smooth visual feedback
+      if (displayTextRef.current) {
+        displayTextRef.current.text = valueFormatter(newValue);
+      }
+      
+      // Store the current drag value
+      currentDragValue.current = newValue;
       
       // DO NOT call onChange during drag - only update visuals
       // onChange(newValue);
@@ -85,7 +100,11 @@ const Slider = ({
       setIsDragging(false);
       
       // Call onChange with the latest dragged value
-      onChange(latestValueRef.current);
+      onChange(currentDragValue.current);
+        // Re-enable prop updates after a brief delay to prevent race conditions
+      setTimeout(() => {
+        blockPropUpdates.current = false;
+      }, 50);
     };
 
     if (isDragging) {
@@ -138,9 +157,8 @@ const Slider = ({
           roughness={0.5}
           metalness={0.3}
         />
-      </mesh>
-
-      <Text
+      </mesh>      <Text
+        ref={displayTextRef}
         position={orientation === 'horizontal'
           ? [0, -thickness * 3, 0.1]
           : [thickness * 3, 0, 0.1]
@@ -150,7 +168,7 @@ const Slider = ({
         anchorX="center"
         anchorY="middle"
       >
-        {displayValue}
+        {/* Text content updated via ref */}
       </Text>
 
       <Text
