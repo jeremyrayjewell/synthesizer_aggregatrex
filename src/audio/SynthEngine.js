@@ -58,14 +58,17 @@ export default class SynthEngine {
   
   /**
    * Create a voice factory function for the voice manager
-   */
-  createVoiceFactory(velocity) {
+   */  createVoiceFactory(velocity) {
     return (note) => {
       try {
         // Create new voice with current parameters
+        // Ensure we're using the actual masterGain gain value for consistency
+        const currentGain = this.masterGain ? this.masterGain.gain.value : 0.8;
+        
         const voice = new Voice(this.audioContext, this.masterGain, {
           ...this.parameters,
-          velocity: velocity / 127
+          velocity: velocity / 127,
+          masterVolume: currentGain // Pass the current actual gain value
         });
         
         // Start the voice
@@ -195,8 +198,7 @@ export default class SynthEngine {
       }
     }
   }
-  
-  /**
+    /**
    * Set a synth parameter
    */
   setParam(param, value) {
@@ -205,13 +207,19 @@ export default class SynthEngine {
       this.parameters[param] = value;
       
       // Apply parameter change to existing voices
-      if (this.voiceManager) {
-        const voices = this.voiceManager.getAllVoices();
-        voices.forEach(voice => {
-          if (voice && typeof voice.updateParam === 'function') {
-            voice.updateParam(param, value);
+      if (this.voiceManager && typeof this.voiceManager.getAllVoices === 'function') {
+        try {
+          const voices = this.voiceManager.getAllVoices();
+          if (voices && voices.length > 0) {
+            voices.forEach(voice => {
+              if (voice && typeof voice.updateParam === 'function') {
+                voice.updateParam(param, value);
+              }
+            });
           }
-        });
+        } catch (e) {
+          console.error('Error applying parameter change to voices:', e);
+        }
       }
     } else {
       console.warn('Unknown parameter:', param);
@@ -224,14 +232,79 @@ export default class SynthEngine {
   setWaveform(type) {
     this.parameters.waveform = type;
   }
-  
   /**
    * Set filter parameters
    */
   setFilter(type, cutoff, q) {
+    console.log(`Setting filter: ${type}, cutoff: ${cutoff}, Q: ${q}`);
     this.parameters.filterType = type;
     this.parameters.filterCutoff = cutoff;
     this.parameters.filterQ = q;
+    this.parameters.filterEnabled = true;
+    
+    // Apply to all voices
+    if (this.voiceManager && typeof this.voiceManager.getAllVoices === 'function') {
+      try {
+        const voices = this.voiceManager.getAllVoices();
+        if (voices && voices.length > 0) {
+          voices.forEach(voice => {
+            if (voice && voice.filter) {
+              voice.filter.type = type;
+              voice.filter.frequency.value = cutoff;
+              voice.filter.Q.value = q;
+            }
+          });
+        } else {
+          console.log('No active voices to apply filter to');
+        }
+      } catch (e) {
+        console.error('Error applying filter to voices:', e);
+      }
+    } else {
+      console.log('Voice manager not available or missing getAllVoices method');
+    }
+  }
+    /**
+   * Bypass the filter by setting extreme values that effectively disable filtering
+   */
+  bypassFilter() {
+    console.log('Bypassing filter');
+    // Store current filter state
+    this.parameters.filterEnabled = false;
+    
+    // Apply to all voices
+    if (this.voiceManager && typeof this.voiceManager.getAllVoices === 'function') {
+      try {
+        const voices = this.voiceManager.getAllVoices();
+        
+        if (voices && voices.length > 0) {
+          voices.forEach(voice => {
+            if (voice && voice.filter) {
+              // Set extreme values based on filter type to effectively bypass
+              if (voice.filter.type === 'lowpass') {
+                // For lowpass, set very high cutoff 
+                voice.filter.frequency.value = 20000;
+                voice.filter.Q.value = 0.1;
+              } else if (voice.filter.type === 'highpass') {
+                // For highpass, set very low cutoff
+                voice.filter.frequency.value = 20;
+                voice.filter.Q.value = 0.1;
+              } else if (voice.filter.type === 'bandpass') {
+                // For bandpass, set wide band in the middle
+                voice.filter.frequency.value = 1000;
+                voice.filter.Q.value = 0.01;
+              }
+            }
+          });
+        } else {
+          console.log('No active voices to bypass filter on');
+        }
+      } catch (e) {
+        console.error('Error bypassing filter:', e);
+      }
+    } else {
+      console.log('Voice manager not available or missing getAllVoices method');
+    }
   }
   
   /**

@@ -415,6 +415,24 @@ class MIDIVoiceManager {  constructor(audioContext) {
     // Reset voice count
     this.voiceCount = 0;
   }
+    /**
+   * Get all active voices in the voice manager
+   * @returns {Array} Array of all voice objects
+   */
+  getAllVoices() {
+    const allVoices = [];
+    
+    // Collect all voices from the activeVoices map
+    for (const [note, voices] of this.activeVoices.entries()) {
+      for (const voice of voices) {
+        if (voice) {
+          allVoices.push(voice);
+        }
+      }
+    }
+    
+    return allVoices;
+  }
 }
 
 export default MIDIVoiceManager;

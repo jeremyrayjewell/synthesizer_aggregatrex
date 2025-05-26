@@ -2,15 +2,64 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import KnobPanel from './KnobPanel';
 import Panel from './Panel';
 import SliderPanel from './SliderPanel';
+import Knob from './Knob';
 import { useSynthContext } from '../hooks/useSynth';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
+
+/**
+ * Enhanced interactive panic button component
+ */
+const PanicButton = ({ panic }) => {
+  const [isPressed, setIsPressed] = useState(false);
+  const buttonRef = useRef();
+  
+  const handlePanic = useCallback((e) => {
+    e.stopPropagation();
+    setIsPressed(true);
+    if (panic) panic();
+    setTimeout(() => setIsPressed(false), 300);
+  }, [panic]);
+  
+  return (
+    <group position={[0, -4, 0.1]} ref={buttonRef}>
+      <mesh 
+        position={[0, 0, 0.05]} 
+        scale={isPressed ? 0.95 : 1}
+        onPointerDown={handlePanic}
+        onPointerUp={() => setIsPressed(false)}
+        onPointerOut={() => setIsPressed(false)}
+      >
+        <cylinderGeometry args={[0.8, 0.8, 0.3, 32]} />
+        <meshStandardMaterial 
+          color={isPressed ? '#cc0000' : '#ff0000'} 
+          roughness={0.7}
+          emissive={isPressed ? '#550000' : '#330000'} 
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+      <Text
+        position={[0, 0, 0.25]}
+        fontSize={0.2}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+        font="/textures/fonts/bold.ttf"
+      >
+        PANIC
+      </Text>
+    </group>
+  );
+};
 
 /**
  * A component that creates a simplified 3D synthesizer control panel
  * focused on filter knobs and envelope sliders.
  */
 const SynthPanel3D = () => {
+  console.log('SynthPanel3D: Starting render');
+  
+  // All hooks must be called at the top level
   const { synthParams, setSynthParams, panic, synth } = useSynthContext();
   const [panelRotation, setPanelRotation] = useState([0, 0, 0]);
   const panelRef = useRef();
@@ -20,6 +69,21 @@ const SynthPanel3D = () => {
     e.stopPropagation();
     setPanelRotation(prev => prev[0] === 0 ? [-Math.PI / 8, 0, 0] : [0, 0, 0]);
   }, []);
+  
+  console.log('SynthPanel3D: Got synth context', { synthParams: !!synthParams, synth: !!synth });
+  
+  // Early return check after all hooks
+  if (!synthParams) {
+    console.log('SynthPanel3D: No synthParams, rendering fallback');
+    return (
+      <mesh>
+        <boxGeometry args={[8, 4, 0.2]} />
+        <meshStandardMaterial color="orange" />
+      </mesh>
+    );
+  }
+  
+  try {
 
   // Create oscillator section controls
   const oscillatorControls = [
@@ -543,51 +607,7 @@ const SynthPanel3D = () => {
       },
       valueFormatter: (val) => `${(val * 100).toFixed(0)}%`,
       color: '#ff9800'
-    }
-  ];
-
-  // Enhanced interactive panic button
-  const PanicButton = () => {
-    const [isPressed, setIsPressed] = useState(false);
-    const buttonRef = useRef();
-    
-    const handlePanic = useCallback((e) => {
-      e.stopPropagation();
-      setIsPressed(true);
-      if (panic) panic();
-      setTimeout(() => setIsPressed(false), 300);
-    }, []);
-    
-    return (
-      <group position={[0, -4, 0.1]} ref={buttonRef}>
-        <mesh 
-          position={[0, 0, 0.05]} 
-          scale={isPressed ? 0.95 : 1}
-          onPointerDown={handlePanic}
-          onPointerUp={() => setIsPressed(false)}
-          onPointerOut={() => setIsPressed(false)}
-        >
-          <cylinderGeometry args={[0.8, 0.8, 0.3, 32]} />
-          <meshStandardMaterial 
-            color={isPressed ? '#cc0000' : '#ff0000'} 
-            roughness={0.7}
-            emissive={isPressed ? '#550000' : '#330000'} 
-            emissiveIntensity={0.5}
-          />
-        </mesh>
-        <Text
-          position={[0, 0, 0.25]}
-          fontSize={0.2}
-          color="white"
-          anchorX="center"
-          anchorY="middle"
-          font="/textures/fonts/bold.ttf"
-        >
-          PANIC
-        </Text>
-      </group>
-    );
-  };
+    }  ];
 
   // Create master volume control
   const masterVolumeControl = {
@@ -613,6 +633,7 @@ const SynthPanel3D = () => {
     valueFormatter: (val) => `${Math.round(val * 100)}%`,
     color: '#e91e63'
   };
+  console.log('SynthPanel3D: Rendering complete panel');
 
   // Return the complete synth panel with simplified controls focused on filters and envelopes
   return (
@@ -627,8 +648,7 @@ const SynthPanel3D = () => {
         borderColor="#333333"
         useMaterial={true}
       >
-        <group>
-          {/* Filter knob section */}
+        <group>          {/* Filter knob section */}
           <KnobPanel
             controls={filterKnobControls}
             title="FILTER KNOBS"
@@ -639,6 +659,30 @@ const SynthPanel3D = () => {
             knobColor="#8bc34a"
             panelColor="#1a1a1a"
           />
+            {/* Simple test volume knob - right next to filter knobs */}
+          <group position={[3.5, 2, 0.1]}>
+            <Knob
+              value={synthParams.master.volume}
+              min={0}
+              max={1}
+              onChange={(value) => {
+                console.log('Volume changed:', value);
+                setSynthParams({
+                  ...synthParams,
+                  master: { ...synthParams.master, volume: value }
+                });
+              }}
+              label="VOLUME"
+              color="#8bc34a"
+              size={1}
+            />
+          </group>
+          
+          {/* Debug cube to verify positioning */}
+          <mesh position={[5, 2, 0.1]}>
+            <boxGeometry args={[0.5, 0.5, 0.5]} />
+            <meshStandardMaterial color="red" />
+          </mesh>
           
           {/* Envelope slider section */}
           <SliderPanel
@@ -651,25 +695,45 @@ const SynthPanel3D = () => {
             color="#1a1a1a"
             sliderLength={2}
             sliderThickness={0.12}
-          />
-          
-          {/* Master volume knob */}
-          <KnobPanel
-            controls={[masterVolumeControl]}
-            title="MASTER"
-            rows={1}
-            cols={1}
-            spacing={1.5}
-            position={[6.5, 2, 0.1]}
-            knobColor="#e91e63"
-            panelColor="#1a1a1a"
-            width={2.5}
-            height={2.5}
-            showValues={true}
-          />
-          
-          {/* Panic button */}
-          <PanicButton />
+          />          {/* Master volume knob - Direct implementation */}
+          <group position={[4, 2, 0.1]}>
+            <Knob
+              value={synthParams.master.volume}
+              min={0}
+              max={1}
+              onChange={(value) => {
+                setSynthParams({
+                  ...synthParams,
+                  master: { ...synthParams.master, volume: value }
+                });
+                
+                // Update master gain directly for immediate effect
+                if (synth && synth.masterGain) {
+                  synth.masterGain.gain.setValueAtTime(
+                    value,
+                    synth.audioContext.currentTime
+                  );
+                }
+              }}
+              label="MASTER VOL"
+              color="#e91e63"
+              size={1.2}
+              valueFormatter={(val) => `${Math.round(val * 100)}%`}
+            />
+            
+            {/* Volume label above knob */}
+            <Text
+              position={[0, 1.8, 0]}
+              fontSize={0.2}
+              color="white"
+              anchorX="center"
+              anchorY="middle"
+            >
+              MASTER VOLUME
+            </Text>
+          </group>
+            {/* Panic button */}
+          <PanicButton panic={panic} />
           
           {/* View angle toggle button */}
           <group 
@@ -689,11 +753,19 @@ const SynthPanel3D = () => {
             >
               VIEW
             </Text>
-          </group>
-        </group>
+          </group>        </group>
       </Panel>
     </group>
   );
+  } catch (error) {
+    console.error('SynthPanel3D: Error during render:', error);
+    return (
+      <mesh>
+        <boxGeometry args={[8, 4, 0.2]} />
+        <meshStandardMaterial color="red" />
+      </mesh>
+    );
+  }
 };
 
 export default SynthPanel3D;

@@ -6,8 +6,7 @@ import { SynthContext } from '../context/SynthContext';
 export const SynthProvider = ({ children }) => {
   const synthRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
-  
-  // Initialize default synth parameters based on the SynthEngine parameters
+    // Initialize default synth parameters based on the SynthEngine parameters
   const [synthParams, setSynthParams] = useState({
     oscillator1: {
       type: 'sawtooth',
@@ -25,7 +24,8 @@ export const SynthProvider = ({ children }) => {
       type: 'lowpass',
       frequency: 2000,
       Q: 1,
-      envelopeAmount: 0.5
+      envelopeAmount: 0.5,
+      enabled: true
     },
     envelope: {
       attack: 0.01,
@@ -46,7 +46,8 @@ export const SynthProvider = ({ children }) => {
       }
     },
     master: {
-      volume: 0.8
+      volume: 0.8,
+      isMuted: false
     }
   });
 
@@ -59,9 +60,9 @@ export const SynthProvider = ({ children }) => {
       if (synthRef.current) {
         synthRef.current.dispose();
       }
-    };
-  }, []);
-    // Update synth engine when parameters change
+    };  }, []);
+  
+  // Update synth engine when parameters change
   useEffect(() => {
     if (synthRef.current && isReady) {
       // Update engine parameters based on synthParams
@@ -79,10 +80,18 @@ export const SynthProvider = ({ children }) => {
           // Add other parameters as they become available
         };
         
-        // Update master volume
-        if (synthRef.current.masterGain) {
+        // Update master volume only if it doesn't come from a reset event
+        // This prevents volume restoration when playing notes while muted
+        if (synthRef.current.masterGain && !synthParams.master.isMuted) {
+          // Only update actual gain node if not muted
           synthRef.current.masterGain.gain.setValueAtTime(
             synthParams.master.volume,
+            synthRef.current.audioContext.currentTime
+          );
+        } else if (synthRef.current.masterGain && synthParams.master.isMuted) {
+          // If muted, ensure gain is set to 0 regardless of volume value
+          synthRef.current.masterGain.gain.setValueAtTime(
+            0,
             synthRef.current.audioContext.currentTime
           );
         }
