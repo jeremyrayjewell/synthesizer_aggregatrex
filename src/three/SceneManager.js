@@ -50,14 +50,14 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
           borderColor="#333333"
           title="SYNTH CONTROLS"
         >          {/* Integrated Filter Panel */}
-          <group position={[-2, -0.75, 0.1]}>
+          <group position={[-4.75, -2.25, 0.1]}>
             <FilterPanel
               filterEnabled={filterEnabled}
               filterType={filterType}
               filterFreq={filterFreq}
               filterQ={filterQ}
-              width={3.5}
-              height={3}
+              width={2}
+              height={1}
               depth={0.2}
               knobColor="#8bc34a"
               onFilterTypeChange={(newType, newEnabled) => {

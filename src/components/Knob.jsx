@@ -187,18 +187,18 @@ const Knob = ({
           />
         </mesh>
       </mesh>      <Text
-        position={[0, -size * 0.35, 0]} /* Reduced spacing */
-        fontSize={size * 0.17} /* Bigger font */
+        position={[0, -size * 0.4, 0]} /* Ultra-minimal spacing */
+        fontSize={0.06} /* Absolute font size */
         color="white"
         fontWeight="bold" /* Making it bold */
         anchorX="center"
         anchorY="middle"
       >
         {label}
-      </Text>      <Text
+      </Text><Text
         ref={displayTextRef}
-        position={[0, size * 0.35, 0]} /* Reduced spacing */
-        fontSize={size * 0.14} /* Bigger font */
+        position={[0, size * 0.4, 0]} /* Reduced spacing */
+        fontSize={0.08} /* Absolute font size */
         color="white"
         fontWeight="bold" /* Making it bold */
         anchorX="center"

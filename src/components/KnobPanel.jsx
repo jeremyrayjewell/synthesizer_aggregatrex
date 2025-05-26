@@ -58,10 +58,9 @@ const KnobPanel = ({
               />
               
               {/* Show larger value display when showValues is true */}
-              {showValues && (
-                <Text
+              {showValues && (                <Text
                   position={[0, -knobSize * 0.75, 0]}
-                  fontSize={knobSize * 0.2}
+                  fontSize={0.06}
                   color="white"
                   anchorX="center"
                   anchorY="middle"

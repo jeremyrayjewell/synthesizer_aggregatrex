@@ -2,11 +2,22 @@
 // Handles 3D interaction logic
 class Controls3D {
   constructor(camera, rendererDomElement) {
-    // Initialize controls (e.g., OrbitControls)
+    this.camera = camera;
+    this.domElement = rendererDomElement;
+    
+    // We're not using OrbitControls anymore since we have ZoomControls
+    this.enabled = false;
   }
 
+  // Method to allow for API compatibility
   update() {
-    // Update controls
+    // No update needed as we use ZoomControls component
+    return;
+  }
+  
+  // Disable any controls
+  dispose() {
+    this.enabled = false;
   }
 }
 

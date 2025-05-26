@@ -13,18 +13,15 @@ const FilterPanel = ({
   // Filter frequency properties
   filterFreq = 2000,
   onFilterFreqChange = () => {},
-  
-  // Filter resonance properties
+    // Filter resonance properties
   filterQ = 1,
-  onFilterQChange = () => {},
-  
-  // Styling
+  onFilterQChange = () => {},  // Styling
   width = 5,
-  height = 3.5,
+  height = 0.5, // Extreme minimal height with component overlap
   depth = 0.2,
   color = '#333333',
   knobColor = '#8bc34a'
-}) => {
+})=> {
   // Convert filter type to normalized value for knob
   const getFilterTypeValue = () => {
     if (!filterEnabled) return 0;
@@ -48,21 +45,19 @@ const FilterPanel = ({
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial color={color} roughness={0.8} />
-      </mesh>
-        {/* Panel title */}
+      </mesh>      {/* Panel title - extremely close to top edge */}
       <Text 
-        position={[0, height/2 - 0.3, depth/2 + 0.01]} 
-        fontSize={0.18} /* Smaller font size */
+        position={[0, height/2 - 0.06, depth/2 + 0.01]} 
+        fontSize={0.1} /* Keeping text readable size */
         color="white"
         anchorX="center"
         anchorY="middle"
       >
         FILTER
-      </Text>
-        {/* Filter Type Knob - positioned at left side */}
-      <group position={[-width/5, height/6 - 0.2, depth/2 + 0.1]}>
+      </Text>      {/* Filter Type Knob - positioned at left side with virtually no space between title and knob */}      
+      <group position={[-width/5, height/3 - 0.25, depth/2 + 0.1]}>
         <Knob
-          size={0.8}
+          size={0.5} /* Minimal knob size */
           value={getFilterTypeValue()}
           min={0}
           max={1}
@@ -95,11 +90,10 @@ const FilterPanel = ({
                    val < 0.78 ? 'HIGH' : 'BAND';
           }}
         />
-      </group>
-        {/* Filter Resonance Knob - positioned at right side */}
-      <group position={[width/5, height/6 - 0.2, depth/2 + 0.1]}>
+      </group>      {/* Filter Resonance Knob - positioned at right side with virtually no space between title and knob */}     
+       <group position={[width/5, height/3 - 0.25, depth/2 + 0.1]}>
         <Knob
-          size={0.8}
+          size={0.5} /* Minimal knob size */
           value={getFilterQValue()}
           min={0}
           max={1}
@@ -114,13 +108,11 @@ const FilterPanel = ({
             // Show resonance value with appropriate precision
             const q = val * 19.9 + 0.1;
             return q.toFixed(1);
-          }}
-        />
-      </group>      {/* Filter Frequency Slider - positioned at bottom */}
-      <group position={[0, -height/5, depth/2 + 0.1]}>
+          }}        />      </group>      {/* Filter Frequency Slider - positioned extremely close to the knobs */}
+      <group position={[0, -0.25, depth/2.5 + 0.1]}> {/* Moved much closer to the knobs */}
         <Slider
-          length={width * 0.8}
-          thickness={height * 0.05} /* Thinner slider */
+          length={width * 0.75}
+          thickness={height * 0.03} /* Even thinner slider */
           value={getFilterFreqValue()}
           min={0}
           max={1}

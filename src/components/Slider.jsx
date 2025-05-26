@@ -215,27 +215,25 @@ const Slider = ({
       </mesh>      <Text
         ref={displayTextRef}
         position={orientation === 'horizontal'
-          ? [0, -thickness * 2.5, 0.1] /* Reduced spacing */
-          : [thickness * 2.5, 0, 0.1] /* Reduced spacing */
+          ? [-length/2 + thickness*2, -thickness * 1.8, 0.1] /* Left-aligned value display */
+          : [thickness * 2.0, 0, 0.1] /* Minimal spacing */
         }
-        fontSize={thickness * 1.1} /* Bigger font */
+        fontSize={0.08} /* Absolute font size */
         color="white"
         fontWeight="bold" /* Making it bold */
-        anchorX="center"
+        anchorX="left"
         anchorY="middle"
       >
-        {/* Text content updated via ref */}
-      </Text>
-
-      <Text
+        {/* Text content updated via ref, will show the value */}
+      </Text>      <Text
         position={orientation === 'horizontal'
-          ? [0, -thickness * 5, 0.1] /* Reduced spacing */
-          : [thickness * 5, 0, 0.1] /* Reduced spacing */
+          ? [thickness*6, -thickness * 1.8, 0.1] /* Position next to the value */
+          : [thickness * 3.5, 0, 0.1] /* Keep vertical position the same */
         }
-        fontSize={thickness * 1.1} /* Bigger font */
+        fontSize={0.06} /* Same font size as value */
         color="white"
         fontWeight="bold" /* Making it bold */
-        anchorX="center"
+        anchorX="left"
         anchorY="middle"
       >
         {label}
