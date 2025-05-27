@@ -12,7 +12,9 @@ const Slider = ({
   color = '#61dafb',
   valueFormatter = (val) => val.toFixed(2),
   thickness = 0.1,
-  orientation = 'horizontal'
+  orientation = 'horizontal',
+  labelOffset = 0, // new prop for label position adjustment
+  valueOffset = 0  // new prop for value position adjustment
 }) => {  const handleRef = useRef();
   const displayTextRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
@@ -212,28 +214,40 @@ const Slider = ({
           roughness={0.5}
           metalness={0.3}
         />
-      </mesh>      <Text
+      </mesh>      {/* Value Display */}
+      <Text
         ref={displayTextRef}
         position={orientation === 'horizontal'
-          ? [-length/2 + thickness*2, -thickness * 1.8, 0.1] /* Left-aligned value display */
-          : [thickness * 2.0, 0, 0.1] /* Minimal spacing */
+          ? [-length/2 + thickness*2, -thickness * 1.8 + valueOffset, 0.1]
+          : [thickness * 1.2 + valueOffset, -thickness*2, 0.1] /* Moved down, closer to slider center */
         }
         fontSize={0.08} /* Absolute font size */
         color="white"
         fontWeight="bold" /* Making it bold */
-        anchorX="left"
+        rotation={orientation === 'horizontal' 
+          ? [0, 0, 0]
+          : [0, 0, Math.PI/2] /* Rotate 90 degrees for vertical sliders (reading from top to bottom) */
+        }
+        anchorX={orientation === 'horizontal' ? 'left' : 'center'}
         anchorY="middle"
       >
         {/* Text content updated via ref, will show the value */}
-      </Text>      <Text
+      </Text>
+      
+      {/* Label */}
+      <Text
         position={orientation === 'horizontal'
-          ? [thickness*6, -thickness * 1.8, 0.1] /* Position next to the value */
-          : [thickness * 3.5, 0, 0.1] /* Keep vertical position the same */
+          ? [thickness*6, -thickness * 1.8 + labelOffset, 0.1] /* Position next to the value */
+          : [thickness * 1.2 + labelOffset, -thickness*8, 0.1] /* Same X as value but with greater distance below */
         }
-        fontSize={0.06} /* Same font size as value */
+        fontSize={0.055} /* Slightly smaller for labels */
         color="white"
         fontWeight="bold" /* Making it bold */
-        anchorX="left"
+        rotation={orientation === 'horizontal' 
+          ? [0, 0, 0]
+          : [0, 0, Math.PI/2] /* Rotate 90 degrees for vertical sliders (reading from top to bottom) */
+        }
+        anchorX={orientation === 'horizontal' ? 'left' : 'center'}
         anchorY="middle"
       >
         {label}

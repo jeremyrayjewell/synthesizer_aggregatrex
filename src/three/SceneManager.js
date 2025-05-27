@@ -5,6 +5,7 @@ import Panel from '../components/Panel';
 import Knob from '../components/Knob';
 import SliderPanel from '../components/SliderPanel';
 import FilterPanel from '../components/FilterPanel';
+import ADSREnvelopePanel from '../components/ADSREnvelopePanel';
 import { useSynthContext } from '../hooks/useSynth';
 
 const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
@@ -49,7 +50,17 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
           border={true}
           borderColor="#333333"
           title="SYNTH CONTROLS"
-        >          {/* Integrated Filter Panel */}
+        >          {/* Integrated Filter Panel */}          {/* ADSR Envelope Panel */}
+          <group position={[3.75, 0, 0.1]}>
+            <ADSREnvelopePanel
+              width={4}
+              height={3.5}
+              depth={0.2}
+              sliderColor="#8bc34a"
+            />
+          </group>
+          
+          {/* Filter Panel */}
           <group position={[-4.75, -2.25, 0.1]}>
             <FilterPanel
               filterEnabled={filterEnabled}
