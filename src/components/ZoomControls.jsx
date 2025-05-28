@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useThree } from '@react-three/fiber';
-import { createPortal } from 'react-dom';
 
 const ZoomControls = ({ 
   minZoom = 0.5,
@@ -9,71 +8,19 @@ const ZoomControls = ({
   pinchSensitivity = 0.01
 }) => {  
   const { camera, gl } = useThree();
-  const touchDistanceRef = useRef(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
   const zoomIndicatorTimeoutRef = useRef(null);
-  
-  // Keep track of current zoom level
   const currentZoom = useRef(1);
-    // Create a DOM element for the portal
-  const [container] = useState(() => {
-    // First, remove any existing container to prevent duplicates
-    const existingContainer = document.getElementById('zoom-controls-container');
-    if (existingContainer) {
-      existingContainer.remove();
-    }
-    
-    const div = document.createElement('div');
-    div.id = 'zoom-controls-container';
-    div.style.position = 'fixed';
-    div.style.bottom = '20px';
-    div.style.right = '20px';
-    div.style.zIndex = '10000'; // Very high z-index to be on top
-    div.style.pointerEvents = 'none';
-    div.style.display = 'block';
-    document.body.appendChild(div);
-    
-    // Add styles
-    const styleId = 'zoom-controls-style';
-    let style = document.getElementById(styleId);
-    if (!style) {
-      style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-        @keyframes zoomFadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 0.9; transform: translateY(0); }
-        }
-        
-        #zoom-controls-container {
-          position: fixed !important;
-          bottom: 20px !important;
-          right: 20px !important;
-          z-index: 10000 !important;
-          pointer-events: none;
-          display: block !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-    
-    return div;
-  });
-  
-  // Handle camera zoom with limits
   const handleZoom = (delta) => {
     const newZoom = Math.max(minZoom, Math.min(maxZoom, currentZoom.current + delta));
     if (newZoom !== currentZoom.current) {
       camera.zoom = newZoom;
       camera.updateProjectionMatrix();
       currentZoom.current = newZoom;
-      
-      // Update zoom level state and show indicator
       setZoomLevel(Math.round(newZoom * 100) / 100);
-      setShowZoomIndicator(true);
       
-      // Hide zoom indicator after 1.5 seconds
+      setShowZoomIndicator(true);
       if (zoomIndicatorTimeoutRef.current) {
         clearTimeout(zoomIndicatorTimeoutRef.current);
       }
@@ -85,36 +32,127 @@ const ZoomControls = ({
     }
     return false;
   };
-    // Clean up timeout and portal container on unmount
   useEffect(() => {
+    const styleId = 'zoom-controls-style';
+    let style = document.getElementById(styleId);
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes zoomFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 0.9; transform: translateY(0); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
     return () => {
-      // Clear any pending timeouts
       if (zoomIndicatorTimeoutRef.current) {
         clearTimeout(zoomIndicatorTimeoutRef.current);
       }
-
-      // We keep the container in DOM to prevent flickering if component re-renders
-      // If you want to fully clean up, uncomment the following:
-      // const controlsContainer = document.getElementById('zoom-controls-container');
-      // if (controlsContainer) {
-      //   controlsContainer.remove();
-      // }
     };
   }, []);
   
   useEffect(() => {
-    // Set initial zoom level
-    camera.zoom = currentZoom.current;
-    camera.updateProjectionMatrix();
+    let indicatorElement = document.getElementById('zoom-indicator');
     
-    // Handle wheel events for zooming
+    if (showZoomIndicator) {
+      if (!indicatorElement) {
+        indicatorElement = document.createElement('div');
+        indicatorElement.id = 'zoom-indicator';
+        document.body.appendChild(indicatorElement);
+      }
+      
+      indicatorElement.style.position = 'fixed';
+      indicatorElement.style.bottom = '110px';
+      indicatorElement.style.right = '20px';
+      indicatorElement.style.backgroundColor = 'rgba(30, 30, 30, 0.8)';
+      indicatorElement.style.color = '#8bc34a';
+      indicatorElement.style.padding = '8px 12px';
+      indicatorElement.style.borderRadius = '16px';
+      indicatorElement.style.fontSize = '14px';
+      indicatorElement.style.fontWeight = 'bold';
+      indicatorElement.style.opacity = '0.9';
+      indicatorElement.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+      indicatorElement.style.animation = 'zoomFadeIn 0.2s ease-out';
+      indicatorElement.style.zIndex = '10000';
+      
+      indicatorElement.textContent = `${Math.round(zoomLevel * 100)}%`;
+      indicatorElement.style.display = 'block';
+    } else if (indicatorElement) {
+      indicatorElement.style.display = 'none';
+    }
+    
+    return () => {
+    };
+  }, [showZoomIndicator, zoomLevel]);
+    useEffect(() => {
+    const zoomInBtn = document.createElement('button');
+    zoomInBtn.textContent = '+';
+    zoomInBtn.style.position = 'fixed';
+    zoomInBtn.style.bottom = '80px';
+    zoomInBtn.style.right = '20px';
+    zoomInBtn.style.width = '45px';
+    zoomInBtn.style.height = '45px';
+    zoomInBtn.style.fontSize = '24px';
+    zoomInBtn.style.backgroundColor = 'rgba(30, 30, 30, 0.8)';
+    zoomInBtn.style.color = '#8bc34a';
+    zoomInBtn.style.border = '1px solid #444';
+    zoomInBtn.style.borderRadius = '50%';
+    zoomInBtn.style.cursor = 'pointer';
+    zoomInBtn.style.zIndex = '10000';
+    zoomInBtn.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)'; // Add shadow for better visibility
+    zoomInBtn.style.transition = 'all 0.15s ease';
+    
+    zoomInBtn.onmouseover = () => {
+      zoomInBtn.style.backgroundColor = 'rgba(50, 50, 50, 0.9)';
+      zoomInBtn.style.transform = 'scale(1.05)';
+    };
+    zoomInBtn.onmouseout = () => {
+      zoomInBtn.style.backgroundColor = 'rgba(30, 30, 30, 0.8)';
+      zoomInBtn.style.transform = 'scale(1)';
+    };
+    
+    zoomInBtn.onclick = () => handleZoom(zoomStep);
+    document.body.appendChild(zoomInBtn);
+    
+    const zoomOutBtn = document.createElement('button');
+    zoomOutBtn.textContent = '−';
+    zoomOutBtn.style.position = 'fixed';
+    zoomOutBtn.style.bottom = '20px';
+    zoomOutBtn.style.right = '20px';
+    zoomOutBtn.style.width = '45px';
+    zoomOutBtn.style.height = '45px';
+    zoomOutBtn.style.fontSize = '24px';
+    zoomOutBtn.style.backgroundColor = 'rgba(30, 30, 30, 0.8)';
+    zoomOutBtn.style.color = '#8bc34a';
+    zoomOutBtn.style.border = '1px solid #444';
+    zoomOutBtn.style.borderRadius = '50%';    zoomOutBtn.style.cursor = 'pointer';
+    zoomOutBtn.style.zIndex = '10000';
+    zoomOutBtn.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)'; // Add shadow for better visibility
+    zoomOutBtn.style.transition = 'all 0.15s ease';
+    
+    zoomOutBtn.onmouseover = () => {
+      zoomOutBtn.style.backgroundColor = 'rgba(50, 50, 50, 0.9)';
+      zoomOutBtn.style.transform = 'scale(1.05)';
+    };
+    zoomOutBtn.onmouseout = () => {
+      zoomOutBtn.style.backgroundColor = 'rgba(30, 30, 30, 0.8)';
+      zoomOutBtn.style.transform = 'scale(1)';
+    };
+    
+    zoomOutBtn.onclick = () => handleZoom(-zoomStep);
+    document.body.appendChild(zoomOutBtn);
+    
     const handleWheel = (e) => {
       e.preventDefault();
       const delta = -Math.sign(e.deltaY) * zoomStep;
       handleZoom(delta);
     };
     
-    // Touch events for pinch zooming
+    const touchDistanceRef = { current: null };
+    
     const handleTouchStart = (e) => {
       if (e.touches.length === 2) {
         const touch1 = e.touches[0];
@@ -128,6 +166,7 @@ const ZoomControls = ({
     
     const handleTouchMove = (e) => {
       if (e.touches.length === 2 && touchDistanceRef.current !== null) {
+        e.preventDefault(); 
         const touch1 = e.touches[0];
         const touch2 = e.touches[1];
         const newDistance = Math.hypot(
@@ -146,141 +185,31 @@ const ZoomControls = ({
       touchDistanceRef.current = null;
     };
     
-    // Add event listeners
     const canvas = gl.domElement;
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd);
     canvas.addEventListener('touchcancel', handleTouchEnd);
     
     return () => {
-      // Remove event listeners
       canvas.removeEventListener('wheel', handleWheel);
       canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchmove', handleTouchMove, { passive: false });
       canvas.removeEventListener('touchend', handleTouchEnd);
       canvas.removeEventListener('touchcancel', handleTouchEnd);
-    };
-  }, [camera, gl, minZoom, maxZoom, zoomStep, pinchSensitivity]);  // Define the controls that will be rendered via portal
-  const controls = (
-    <>
-      <div 
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          pointerEvents: 'auto',
-          zIndex: 10000
-        }}
-      >
-        <button 
-          onClick={() => handleZoom(zoomStep)}
-          style={{
-            width: '45px',
-            height: '45px',
-            fontSize: '24px',
-            lineHeight: '1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(30, 30, 30, 0.8)',
-            color: '#8bc34a',
-            border: '1px solid #444',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-            transition: 'all 0.15s ease',
-            outline: 'none',
-            pointerEvents: 'auto'
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(50, 50, 50, 0.9)';
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(30, 30, 30, 0.8)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-          aria-label="Zoom in"
-        >
-          +
-        </button>
-        <button 
-          onClick={() => handleZoom(-zoomStep)}
-          style={{
-            width: '45px',
-            height: '45px',
-            fontSize: '28px',
-            lineHeight: '1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(30, 30, 30, 0.8)',
-            color: '#8bc34a',
-            border: '1px solid #444',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-            transition: 'all 0.15s ease',
-            outline: 'none',
-            pointerEvents: 'auto'
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(50, 50, 50, 0.9)';
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(30, 30, 30, 0.8)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-          aria-label="Zoom out"
-        >
-          −
-        </button>
-      </div>
+      zoomInBtn.remove();
+      zoomOutBtn.remove();
       
-      {/* Zoom level indicator */}
-      {showZoomIndicator && (
-        <div style={{
-            position: 'absolute',
-            bottom: '110px',
-            right: '0',
-            backgroundColor: 'rgba(30, 30, 30, 0.8)',
-            color: '#8bc34a',
-            padding: '8px 12px',
-            borderRadius: '16px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            opacity: '0.9',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-            animation: 'zoomFadeIn 0.2s ease-out',
-            zIndex: 10000,
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {Math.round(zoomLevel * 100)}%
-        </div>
-      )}
-    </>
-  );
-  // Use React portals to render the controls directly in the body AND return an empty group for Three.js
-  // We need to return both the portal and the group, otherwise the portal won't render
+      const indicator = document.getElementById('zoom-indicator');
+      if (indicator) indicator.remove();
+      
+      if (zoomIndicatorTimeoutRef.current) {
+        clearTimeout(zoomIndicatorTimeoutRef.current);
+      }
+    };
+  }, [camera, gl, minZoom, maxZoom, zoomStep]);
   
-  // Add debug log
-  useEffect(() => {
-    console.log("ZoomControls mounted, container:", container);
-  }, [container]);
-  
-  return (
-    <>
-      {createPortal(controls, container)}
-      <group />
-    </>
-  );
+  return null;
 };
 
 export default ZoomControls;

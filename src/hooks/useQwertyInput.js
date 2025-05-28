@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 
-// Simple map from QWERTY keys to MIDI notes
 const keyToNote = {
-  a: 60, // C4
+  a: 60,
   w: 61,
   s: 62,
   e: 63,
@@ -14,7 +13,7 @@ const keyToNote = {
   h: 69,
   u: 70,
   j: 71,
-  k: 72, // C5
+  k: 72,
 };
 
 export default function useQwertyInput(onNoteOn, onNoteOff) {

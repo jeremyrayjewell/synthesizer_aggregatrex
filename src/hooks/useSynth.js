@@ -1,12 +1,11 @@
 import { useContext, useEffect, useRef, useState, useCallback } from 'react';
 import SynthEngine from '../audio/SynthEngine';
 import { SynthContext } from '../context/SynthContext';
+import { DEFAULT_MASTER_VOLUME } from '../constants';
 
-// Synth Provider Component
 export const SynthProvider = ({ children }) => {
   const synthRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
-    // Initialize default synth parameters based on the SynthEngine parameters
   const [synthParams, setSynthParams] = useState({
     oscillator1: {
       type: 'sawtooth',
@@ -44,9 +43,8 @@ export const SynthProvider = ({ children }) => {
         dampening: 3000,
         mix: 0.2
       }
-    },
-    master: {
-      volume: 0.8,
+    },    master: {
+      volume: DEFAULT_MASTER_VOLUME,
       isMuted: false
     }
   });
@@ -54,20 +52,16 @@ export const SynthProvider = ({ children }) => {
   useEffect(() => {
     synthRef.current = new SynthEngine();
     setIsReady(true);
-    
-    // Cleanup
     return () => {
       if (synthRef.current) {
         synthRef.current.dispose();
       }
-    };  }, []);
-  
-  // Update synth engine when parameters change
+    };
+  }, []);
+
   useEffect(() => {
     if (synthRef.current && isReady) {
-      // Update engine parameters based on synthParams
       try {
-        // Convert from our UI params to engine params format
         synthRef.current.parameters = {
           waveform: synthParams.oscillator1.type,
           attack: synthParams.envelope.attack,
@@ -76,20 +70,15 @@ export const SynthProvider = ({ children }) => {
           release: synthParams.envelope.release,
           filterType: synthParams.filter.type,
           filterCutoff: synthParams.filter.frequency,
-          filterQ: synthParams.filter.Q,
-          // Add other parameters as they become available
+          filterQ: synthParams.filter.Q
         };
-        
-        // Update master volume only if it doesn't come from a reset event
-        // This prevents volume restoration when playing notes while muted
+
         if (synthRef.current.masterGain && !synthParams.master.isMuted) {
-          // Only update actual gain node if not muted
           synthRef.current.masterGain.gain.setValueAtTime(
             synthParams.master.volume,
             synthRef.current.audioContext.currentTime
           );
         } else if (synthRef.current.masterGain && synthParams.master.isMuted) {
-          // If muted, ensure gain is set to 0 regardless of volume value
           synthRef.current.masterGain.gain.setValueAtTime(
             0,
             synthRef.current.audioContext.currentTime
@@ -100,40 +89,30 @@ export const SynthProvider = ({ children }) => {
       }
     }
   }, [isReady, synthParams]);
-  
-  // State for patch management
+
   const [currentPatch, setCurrentPatch] = useState({});
-  
-  // State for global play/stop functionality
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // State for automation data
   const [automationData, setAutomationData] = useState({});
-  
-  // Example function to update patch and inform synthEngine
+
   const loadPatch = useCallback((patchData) => {
     setCurrentPatch(patchData);
-    // Update synthParams based on patch data
     if (patchData.params) {
       setSynthParams(patchData.params);
     }
   }, []);
 
-  // Example: toggle global play state
   const togglePlay = useCallback(() => {
     setIsPlaying(prev => !prev);
     if (synthRef.current) {
-      // You could implement playback state control here
-      // synthRef.current.setPlaybackState(!isPlaying);
     }
   }, [isPlaying]);
 
-  // All notes off / panic function
   const panic = useCallback(() => {
     if (synthRef.current) {
       synthRef.current.allNotesOff();
     }
   }, []);
+
   return (
     <SynthContext.Provider value={{
       synth: synthRef.current,
@@ -152,7 +131,6 @@ export const SynthProvider = ({ children }) => {
   );
 };
 
-// Custom Hook to use Synth
 export const useSynth = () => {
   const context = useContext(SynthContext);
   if (!context) {
@@ -161,7 +139,6 @@ export const useSynth = () => {
   return context.synth;
 };
 
-// Custom Hook to use all synth context values
 export const useSynthContext = () => {
   const context = useContext(SynthContext);
   if (!context) {

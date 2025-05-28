@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEYS = [1, 3, 6, 8, 10];
 const isBlack = (note) => BLACK_KEYS.includes(note % 12);
-
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const Key = ({ note, x, isBlackKey, isPressed, onNoteOn, onNoteOff }) => {
@@ -11,7 +10,6 @@ const Key = ({ note, x, isBlackKey, isPressed, onNoteOn, onNoteOff }) => {
   const height = isBlackKey ? 0.5 : 0.2;
   const depth = isBlackKey ? 3 : 4.5;
   const color = isBlackKey ? 'black' : 'white';
-
   const pressDepth = 0.05;
   const pressTilt = isBlackKey ? 0.05 : 0.03;
 
@@ -41,8 +39,8 @@ const Key = ({ note, x, isBlackKey, isPressed, onNoteOn, onNoteOff }) => {
 };
 
 const Keyboard3D = ({
-  startNote = 21, // A0
-  endNote = 108,  // C8
+  startNote = 21,
+  endNote = 108,
   onNoteOn,
   onNoteOff,
   activeNotes = new Set(),
@@ -54,8 +52,6 @@ const Keyboard3D = ({
   const keySpacing = 1.05;
   const totalWidth = whiteNotes.length * keySpacing;
   const initialOffset = totalWidth / 2;
-
-  // Increase view width for more visible keys
   const viewWidth = 15;
   const maxOffset = totalWidth / 2;
   const minOffset = -totalWidth / 2;
@@ -64,7 +60,6 @@ const Keyboard3D = ({
   const dragging = useRef(false);
   const lastX = useRef(null);
 
-  // Arrow keys for scrolling
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'ArrowLeft') {
@@ -77,10 +72,9 @@ const Keyboard3D = ({
     return () => window.removeEventListener('keydown', handleKey);
   }, [minOffset, maxOffset]);
 
-  // Mouse drag scrolling
   useEffect(() => {
     const handleDown = (e) => {
-      if (e.button === 2) { // Only scroll on right mouse button
+      if (e.button === 2) {
         dragging.current = true;
         lastX.current = e.clientX;
         e.preventDefault();
@@ -113,7 +107,6 @@ const Keyboard3D = ({
     };
   }, [minOffset, maxOffset]);
 
-  // Mouse wheel scrolling
   useEffect(() => {
     const handleWheel = (e) => {
       e.preventDefault();
@@ -125,10 +118,8 @@ const Keyboard3D = ({
     return () => window.removeEventListener('wheel', handleWheel);
   }, [minOffset, maxOffset]);
 
-  // Create keyboard layout
   return (
     <group position={[-initialOffset + keyboardOffset, 0, 0]}>
-      {/* White keys */}
       {whiteNotes.map((note, i) => (
         <Key
           key={note}
@@ -140,7 +131,6 @@ const Keyboard3D = ({
           onNoteOff={onNoteOff}
         />
       ))}
-      {/* Black keys */}
       {blackNotes.map((note) => {
         const index = whiteNotes.findIndex(n => n > note) - 1;
         const x = index * keySpacing + 0.65;

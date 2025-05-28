@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, startTransition } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Html } from '@react-three/drei';
 import SceneManager from './SceneManager';
-import ZoomControlsSimple from '../components/ZoomControlsSimple';
+import ZoomControls from '../components/ZoomControls';
 import CameraAnimation from '../components/CameraAnimation';
 
 const LoadingScreen = () => (
@@ -20,7 +20,8 @@ const LoadingScreen = () => (
   </Html>
 );
 
-const CanvasContent = ({ onNoteOn, onNoteOff, activeNotes, children }) => {  return (
+const CanvasContent = ({ onNoteOn, onNoteOff, activeNotes, children }) => {  
+  return (
     <group>
       <color attach="background" args={['#111']} />
       <ambientLight intensity={0.5} />
@@ -37,13 +38,10 @@ const CanvasContent = ({ onNoteOn, onNoteOff, activeNotes, children }) => {  ret
 };
 
 const ThreeCanvas = ({ children, onNoteOn, onNoteOff, activeNotes }) => {
-  // Camera animation is always enabled (no toggle functionality)
   const cameraAnimationEnabled = true;
 
   useEffect(() => {
-    // Ensure the canvas is mounted before doing any state updates
     startTransition(() => {
-      // Any state updates will be wrapped in startTransition
     });
   }, []);
   
@@ -57,19 +55,19 @@ const ThreeCanvas = ({ children, onNoteOn, onNoteOff, activeNotes }) => {
           position: [0, 2, 20]
         }}
       >
-        <Suspense fallback={<LoadingScreen />}>          <CanvasContent
+        <Suspense fallback={<LoadingScreen />}>
+          <CanvasContent
             onNoteOn={onNoteOn}
             onNoteOff={onNoteOff}
             activeNotes={activeNotes}
-          >            {children}
-            
-            {/* ZoomControls provides zoom functionality via Three.js and renders UI via direct DOM manipulation */}
-            <ZoomControlsSimple 
+          >
+            {children}
+            <ZoomControls 
               minZoom={0.5}
               maxZoom={2.5}
               zoomStep={0.2}
               pinchSensitivity={0.01}
-            />            {/* Add camera animation for enhanced 3D effect - always enabled with pronounced movement */}
+            />
             <CameraAnimation
               radius={1.5}
               speed={0.25}

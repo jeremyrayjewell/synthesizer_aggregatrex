@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Separate texture loader component to handle Suspense boundary
 const TexturedMaterial = ({ color, width, height, textures }) => {
   useEffect(() => {
     if (textures) {
@@ -48,8 +47,7 @@ const PanelContent = ({
 }) => {
   const [hovered, setHovered] = useState(false);
   const meshRef = useRef();
-  
-  // Always call useTexture, even if we don't use the textures
+
   const textures = useTexture({
     map: '/textures/leather/brown_leather_albedo_4k.jpg',
     roughnessMap: '/textures/leather/brown_leather_rough_4k.jpg',
@@ -58,7 +56,6 @@ const PanelContent = ({
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Panel base */}
       <mesh
         ref={meshRef}
         onPointerOver={(e) => {
@@ -86,16 +83,12 @@ const PanelContent = ({
           />
         )}
       </mesh>
-      
-      {/* Border frame */}
       {border && (
         <lineSegments>
           <edgesGeometry args={[new THREE.BoxGeometry(width + borderWidth, height + borderWidth, depth + borderWidth)]} />
           <lineBasicMaterial color={borderColor} linewidth={2} />
         </lineSegments>
       )}
-      
-      {/* Panel title */}
       {title && (
         <Text
           position={[0, height/2 - 0.3, depth/2 + 0.01]}
@@ -108,16 +101,12 @@ const PanelContent = ({
           {title}
         </Text>
       )}
-      
-      {/* Add a decorative divider line below the title */}
       {title && (
         <mesh position={[0, height/2 - 0.5, depth/2 + 0.01]}>
           <boxGeometry args={[width * 0.8, 0.02, 0.01]} />
           <meshStandardMaterial color={borderColor} emissive={borderColor} emissiveIntensity={0.2} />
         </mesh>
       )}
-      
-      {/* Child components */}
       <group position={[0, 0, depth/2 + 0.01]}>
         {children}
       </group>
