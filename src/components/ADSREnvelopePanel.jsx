@@ -4,30 +4,36 @@ import * as THREE from 'three';
 import Panel from './Panel';
 import Slider from './Slider';
 import { useSynthContext } from '../hooks/useSynth';
+import { createPositioning, COMMON_SPACING } from '../constants/spacing';
 
-const ADSREnvelopePanel = ({
-  width = 4,
-  height = 3.5,
-  depth = 0.2,
-  color = '#333333',
-  sliderColor = '#8bc34a',
-  position = [0, 0, 0]
-}) => {
+const ADSREnvelopePanel = () => {
+  // Internal component dimensions and styling
+  const width = 2;
+  const height = 3.5;
+  const depth = 0.2;
+  const color = '#333333';
+  const sliderColor = '#8bc34a';
+  const position = [4.7, -1.1, 0.1];
   const { synthParams, setSynthParams, synth } = useSynthContext();
   const { attack, decay, sustain, release } = synthParams.envelope;
-
   const formatTimeMs = (seconds) => {
     const ms = seconds * 1000;
     if (ms < 10) return `${ms.toFixed(1)}ms`;
     if (ms < 1000) return `${Math.round(ms)}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
   };
+  const formatSustain = (value) => `${Math.round(value * 100)}%`;  // Create standardized positioning
+  const { leftFifthX, bottomY, sliderZ, textZ } = createPositioning(width, height, depth);
+  
+  const sliderThickness = COMMON_SPACING.SLIDER_THICKNESS;
+  const sliderLength = COMMON_SPACING.SLIDER_LENGTH;
+  const sliderSpacing = COMMON_SPACING.SLIDER_SPACING;
+  const baseSliderY = bottomY + COMMON_SPACING.ADSR_SLIDER_Y_ADJUSTMENT;
 
-  const formatSustain = (value) => `${Math.round(value * 100)}%`;
-
-  const sliderThickness = 0.08;
-  const sliderLength = 1.75;
-  const sliderSpacing = 0.35;
+  // Center the 4 sliders across the panel width
+  const sliderWidth = width * 0.8; // Use 80% of panel width for sliders
+  const sliderStartX = -sliderWidth / 2;
+  const sliderStepX = sliderWidth / 3; // 3 gaps between 4 sliders
 
   const envelopeTextureRef = React.useRef();
 
@@ -182,25 +188,30 @@ const ADSREnvelopePanel = ({
   const decayPosition = timeToSliderPosition(decay, 3000);
   const sustainPosition = sustain;
   const releasePosition = timeToSliderPosition(release, 5000);
-
   return (
     <group position={position}>
-      <Panel
-        width={width}
-        height={height}
-        depth={depth}
-        color={color}
-        title="ENVELOPE"
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[width, height, depth]} />
+        <meshStandardMaterial color={color} roughness={0.8} />
+      </mesh>
+
+      <Text
+        position={[0, height / 2 - COMMON_SPACING.TITLE_OFFSET, textZ]}
+        fontSize={0.1}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
       >
-        <mesh position={[0, height / 2 - 1, depth / 2 + 0.01]}>
-          <planeGeometry args={[width * 0.45, 0.7]} />
-          <meshBasicMaterial
-            map={envelopeTextureRef.current || drawADSRCurve()}
-            transparent
-            opacity={0.9}
-          />
-        </mesh>
-        <group position={[-width / 5 + sliderSpacing, -height / 4 + 0.3, depth / 2 + 0.1]}>
+        ENVELOPE
+      </Text>      {/* Wider and centered visualizer */}
+      <mesh position={[0, height / 2 - 1, depth / 2 + 0.01]}>
+        <planeGeometry args={[width * 0.9, 1]} />
+        <meshBasicMaterial
+          map={envelopeTextureRef.current || drawADSRCurve()}
+          transparent
+          opacity={0.9}
+        />      </mesh>
+      <group position={[sliderStartX, baseSliderY, sliderZ]}>
           <Slider
             orientation="vertical"
             length={sliderLength}
@@ -215,8 +226,7 @@ const ADSREnvelopePanel = ({
             labelOffset={0}
             valueOffset={0}
           />
-        </group>
-        <group position={[-width / 5 + sliderSpacing * 2, -height / 4 + 0.3, depth / 2 + 0.1]}>
+        </group>        <group position={[sliderStartX + sliderStepX, baseSliderY, sliderZ]}>
           <Slider
             orientation="vertical"
             length={sliderLength}
@@ -231,8 +241,7 @@ const ADSREnvelopePanel = ({
             labelOffset={0}
             valueOffset={0}
           />
-        </group>
-        <group position={[-width / 5 + sliderSpacing * 3, -height / 4 + 0.3, depth / 2 + 0.1]}>
+        </group>        <group position={[sliderStartX + sliderStepX * 2, baseSliderY, sliderZ]}>
           <Slider
             orientation="vertical"
             length={sliderLength}
@@ -247,8 +256,7 @@ const ADSREnvelopePanel = ({
             labelOffset={0}
             valueOffset={0}
           />
-        </group>
-        <group position={[-width / 5 + sliderSpacing * 4, -height / 4 + 0.3, depth / 2 + 0.1]}>
+        </group>        <group position={[sliderStartX + sliderStepX * 3, baseSliderY, sliderZ]}>
           <Slider
             orientation="vertical"
             length={sliderLength}
@@ -264,7 +272,6 @@ const ADSREnvelopePanel = ({
             valueOffset={0}
           />
         </group>
-      </Panel>
     </group>
   );
 };
