@@ -100,7 +100,6 @@ const OscillatorPanel = ({
 
   // Create standardized positioning
   const { topY, bottomY, leftX, rightX, centerX, knobZ } = createPositioning(width, height, depth);
-
   const updateOscillator = (updates) => {
     setSynthParams(prev => ({
       ...prev,
@@ -112,6 +111,7 @@ const OscillatorPanel = ({
         if (key === 'type') synth.setParam('oscillator1Type', value);
         else if (key === 'detune') synth.setParam('oscillator1Detune', value);
         else if (key === 'pulseWidth') synth.setParam('oscillator1PulseWidth', value);
+        else if (key === 'mix') synth.setParam('oscillator1Mix', value);
       });
     }
   };
@@ -124,17 +124,17 @@ const OscillatorPanel = ({
 
     if (synth) {
       Object.entries(updates).forEach(([key, value]) => {
-        if (key === 'enabled') synth.setParam('subOscEnabled', value);
-        else if (key === 'mix') synth.setParam('subOscMix', value);
-        else if (key === 'type') synth.setParam('subOscType', value);
+        if (key === 'enabled') synth.setParam('subOscillatorEnabled', value);
+        else if (key === 'mix') synth.setParam('subOscillatorMix', value);
+        else if (key === 'type') synth.setParam('subOscillatorType', value);
       });
     }
   };
-
   const osc = synthParams.oscillator1 || {
     type: 'sawtooth',
     detune: DEFAULT_DETUNE,
-    pulseWidth: DEFAULT_PULSE_WIDTH
+    pulseWidth: DEFAULT_PULSE_WIDTH,
+    mix: 0.8  // Make oscillator 1 more prominent by default
   };
 
   const subOsc = synthParams.subOscillator || {
@@ -176,9 +176,7 @@ const OscillatorPanel = ({
             osc.type.charAt(0).toUpperCase() + osc.type.slice(1, 3)
           }
         />
-      </group>
-
-      <group position={[centerX, topY, knobZ]}>
+      </group>      <group position={[centerX, topY, knobZ]}>
         <Knob
           size={0.4}
           value={(osc.detune - DETUNE_MIN) / (DETUNE_MAX - DETUNE_MIN)}
@@ -192,6 +190,8 @@ const OscillatorPanel = ({
           color="#FF9800"
           valueFormatter={(val) => {
             const detune = DETUNE_MIN + val * (DETUNE_MAX - DETUNE_MIN);
+            if (Math.abs(detune) < 50) return `${detune.toFixed(0)}¢`;
+            if (Math.abs(detune) >= 1200) return `${(detune/1200).toFixed(1)} oct`;
             return `${detune.toFixed(0)}¢`;
           }}
         />
@@ -200,19 +200,13 @@ const OscillatorPanel = ({
       <group position={[rightX, topY, knobZ]}>
         <Knob
           size={0.4}
-          value={(osc.pulseWidth - PULSE_WIDTH_MIN) / (PULSE_WIDTH_MAX - PULSE_WIDTH_MIN)}
+          value={osc.mix || 0.8}
           min={0}
           max={1}
-          onChange={(val) => {
-            const pulseWidth = PULSE_WIDTH_MIN + val * (PULSE_WIDTH_MAX - PULSE_WIDTH_MIN);
-            updateOscillator({ pulseWidth });
-          }}
-          label="PULSE"
-          color="#9C27B0"
-          valueFormatter={(val) => {
-            const pw = PULSE_WIDTH_MIN + val * (PULSE_WIDTH_MAX - PULSE_WIDTH_MIN);
-            return `${(pw * 100).toFixed(0)}%`;
-          }}
+          onChange={(mix) => updateOscillator({ mix })}
+          label="OSC MIX"
+          color="#4CAF50"
+          valueFormatter={(val) => `${(val * 100).toFixed(0)}%`}
         />
       </group>
 

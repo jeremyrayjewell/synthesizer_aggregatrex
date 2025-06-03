@@ -1,27 +1,47 @@
 import { useContext, useEffect, useRef, useState, useCallback } from 'react';
 import SynthEngine from '../audio/SynthEngine';
 import { SynthContext } from '../context/SynthContext';
-import { DEFAULT_MASTER_VOLUME } from '../constants';
+import { 
+  DEFAULT_MASTER_VOLUME, 
+  DEFAULT_DETUNE, 
+  DEFAULT_PULSE_WIDTH, 
+  DEFAULT_SUB_ENABLED, 
+  DEFAULT_SUB_MIX, 
+  DEFAULT_SUB_WAVEFORM,
+  DEFAULT_ARP_ENABLED,
+  DEFAULT_ARP_RATE,
+  DEFAULT_ARP_PATTERN,
+  DEFAULT_ARP_OCTAVES,
+  DEFAULT_ARP_GATE,
+  DEFAULT_ARP_SWING,
+  DEFAULT_ARP_STEP_LENGTH,
+  DEFAULT_ARP_VELOCITY_MODE,
+  DEFAULT_ARP_HOLD_MODE
+} from '../constants/synth';
 
 export const SynthProvider = ({ children }) => {
   const synthRef = useRef(null);
-  const [isReady, setIsReady] = useState(false);
-  const [synthParams, setSynthParams] = useState({
-    oscillator1: {
+  const [isReady, setIsReady] = useState(false);  const [synthParams, setSynthParams] = useState({    oscillator1: {
       type: 'sawtooth',
       frequency: 440,
-      detune: 0,
-      mix: 0.5
+      detune: DEFAULT_DETUNE,
+      mix: 0.8,  // Increased from 0.5 to make more audible
+      pulseWidth: DEFAULT_PULSE_WIDTH
     },
     oscillator2: {
       type: 'square',
       frequency: 440,
-      detune: 0,
-      mix: 0.5
+      detune: DEFAULT_DETUNE,
+      mix: 0.5,
+      pulseWidth: DEFAULT_PULSE_WIDTH
     },
-    filter: {
+    subOscillator: {
+      enabled: DEFAULT_SUB_ENABLED,
+      type: DEFAULT_SUB_WAVEFORM,
+      mix: DEFAULT_SUB_MIX
+    },    filter: {
       type: 'lowpass',
-      frequency: 2000,
+      frequency: 8000,  // Increased from 2000 for brighter sound
       Q: 1,
       envelopeAmount: 0.5,
       enabled: true
@@ -31,8 +51,7 @@ export const SynthProvider = ({ children }) => {
       decay: 0.2,
       sustain: 0.7,
       release: 0.5
-    },
-    effects: {
+    },    effects: {
       delay: {
         time: 0.3,
         feedback: 0.3,
@@ -43,7 +62,19 @@ export const SynthProvider = ({ children }) => {
         dampening: 3000,
         mix: 0.2
       }
-    },    master: {
+    },
+    arpeggiator: {
+      enabled: DEFAULT_ARP_ENABLED,
+      rate: DEFAULT_ARP_RATE,
+      pattern: DEFAULT_ARP_PATTERN,
+      octaves: DEFAULT_ARP_OCTAVES,
+      gate: DEFAULT_ARP_GATE,
+      swing: DEFAULT_ARP_SWING,
+      stepLength: DEFAULT_ARP_STEP_LENGTH,
+      velocityMode: DEFAULT_ARP_VELOCITY_MODE,
+      holdMode: DEFAULT_ARP_HOLD_MODE
+    },
+    master: {
       volume: DEFAULT_MASTER_VOLUME,
       isMuted: false
     }
@@ -57,13 +88,21 @@ export const SynthProvider = ({ children }) => {
         synthRef.current.dispose();
       }
     };
-  }, []);
-
-  useEffect(() => {
+  }, []);  useEffect(() => {
     if (synthRef.current && isReady) {
       try {
+        // Update the synth engine parameters
         synthRef.current.parameters = {
           waveform: synthParams.oscillator1.type,
+          oscillator1Type: synthParams.oscillator1.type,
+          oscillator1Detune: synthParams.oscillator1.detune,
+          oscillator1PulseWidth: synthParams.oscillator1.pulseWidth,
+          oscillator2Type: synthParams.oscillator2.type,
+          oscillator2Detune: synthParams.oscillator2.detune,
+          oscillator2PulseWidth: synthParams.oscillator2.pulseWidth,
+          subOscillatorEnabled: synthParams.subOscillator.enabled,
+          subOscillatorType: synthParams.subOscillator.type,
+          subOscillatorMix: synthParams.subOscillator.mix,
           attack: synthParams.envelope.attack,
           decay: synthParams.envelope.decay,
           sustain: synthParams.envelope.sustain,
@@ -73,6 +112,22 @@ export const SynthProvider = ({ children }) => {
           filterQ: synthParams.filter.Q
         };
 
+        // Update arpeggiator parameters if they exist
+        if (synthRef.current.updateArpeggiator && synthParams.arpeggiator) {
+          synthRef.current.updateArpeggiator({
+            enabled: synthParams.arpeggiator.enabled,
+            rate: synthParams.arpeggiator.rate,
+            pattern: synthParams.arpeggiator.pattern,
+            octaves: synthParams.arpeggiator.octaves,
+            gate: synthParams.arpeggiator.gate,
+            swing: synthParams.arpeggiator.swing,
+            stepLength: synthParams.arpeggiator.stepLength,
+            velocityMode: synthParams.arpeggiator.velocityMode,
+            holdMode: synthParams.arpeggiator.holdMode
+          });
+        }
+
+        // Update master volume
         if (synthRef.current.masterGain && !synthParams.master.isMuted) {
           synthRef.current.masterGain.gain.setValueAtTime(
             synthParams.master.volume,
@@ -106,10 +161,23 @@ export const SynthProvider = ({ children }) => {
     if (synthRef.current) {
     }
   }, [isPlaying]);
-
   const panic = useCallback(() => {
     if (synthRef.current) {
+      // If arpeggiator is enabled, disable it first
+      if (synthRef.current.arpeggiator && synthRef.current.arpeggiator.isEnabled) {
+        console.log("Disabling arpeggiator during panic button press");
+        // Update both the engine and the state
+        synthRef.current.arpeggiator.setEnabled(false);
+        setSynthParams(prev => ({
+          ...prev,
+          arpeggiator: { ...prev.arpeggiator, enabled: false }
+        }));
+      }
+      
+      // Now stop all notes
       synthRef.current.allNotesOff();
+      
+      console.log("Panic button pressed - all notes off");
     }
   }, []);
 

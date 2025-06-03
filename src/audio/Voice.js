@@ -18,13 +18,14 @@ export default class Voice {
       throw e;
     }
   }
-
   createAudioNodes() {
     try {
       this.oscillator1 = this.audioContext.createOscillator();
       this.oscillator2 = this.audioContext.createOscillator();
+      this.subOscillator = this.audioContext.createOscillator();
       this.oscMixer1 = this.audioContext.createGain();
       this.oscMixer2 = this.audioContext.createGain();
+      this.subOscMixer = this.audioContext.createGain();
     } catch (e) {
       console.error("Failed to create oscillators:", e);
       throw e;
@@ -55,17 +56,20 @@ export default class Voice {
       throw e;
     }
   }
-
   configureAudioNodes() {
     const now = this.audioContext.currentTime;
 
-    try {
-      this.oscillator1.type = this.options.oscillator1Type || 'sawtooth';
+    try {      this.oscillator1.type = this.options.oscillator1Type || 'sawtooth';
       this.oscillator2.type = this.options.oscillator2Type || 'square';
       this.oscillator1.detune.value = this.options.oscillator1Detune || 0;
       this.oscillator2.detune.value = this.options.oscillator2Detune || 0;
-      this.oscMixer1.gain.value = this.options.oscillator1Mix || 0.5;
-      this.oscMixer2.gain.value = this.options.oscillator2Mix || 0.5;
+      this.oscMixer1.gain.value = this.options.oscillator1Mix || 0.8;  // Increased
+      this.oscMixer2.gain.value = this.options.oscillator2Mix || 0.3;  // Reduced
+      
+      // Configure sub-oscillator
+      this.subOscillator.type = this.options.subOscillatorType || 'sine';
+      this.subOscMixer.gain.value = this.options.subOscillatorEnabled ? 
+        (this.options.subOscillatorMix || 0.3) : 0;
     } catch (e) {
       console.error("Failed to configure oscillators:", e);
     }
@@ -94,13 +98,14 @@ export default class Voice {
       console.error("Failed to configure effects:", e);
     }
   }
-
   connectAudioNodes() {
     try {
       this.oscillator1.connect(this.oscMixer1);
       this.oscillator2.connect(this.oscMixer2);
+      this.subOscillator.connect(this.subOscMixer);
       this.oscMixer1.connect(this.filter);
       this.oscMixer2.connect(this.filter);
+      this.subOscMixer.connect(this.filter);
       this.filter.connect(this.gainNode);
 
       const drySignal = this.gainNode;
@@ -125,14 +130,15 @@ export default class Voice {
       return;
     }
 
-    const now = this.audioContext.currentTime;
-
-    try {
+    const now = this.audioContext.currentTime;    try {
       const freq = 440 * Math.pow(2, (noteNumber - 69) / 12);
       this.oscillator1.frequency.setValueAtTime(freq, now);
       this.oscillator2.frequency.setValueAtTime(freq, now);
+      // Sub-oscillator is one octave lower
+      this.subOscillator.frequency.setValueAtTime(freq / 2, now);
       this.oscillator1.start(now);
       this.oscillator2.start(now);
+      this.subOscillator.start(now);
 
       const { attack, decay, sustain, velocity } = this.options;
       const peak = velocity || 1.0;
@@ -174,17 +180,17 @@ export default class Voice {
       const currentGain = this.gainNode.gain.value;
       this.gainNode.gain.setValueAtTime(currentGain, now);
 
-      if (immediate) {
-        this.gainNode.gain.linearRampToValueAtTime(0, now + 0.01);
+      if (immediate) {        this.gainNode.gain.linearRampToValueAtTime(0, now + 0.01);
         this.oscillator1.stop(now + 0.02);
         this.oscillator2.stop(now + 0.02);
-        setTimeout(() => this.disconnect(), 50);
-      } else {
+        this.subOscillator.stop(now + 0.02);
+        setTimeout(() => this.disconnect(), 50);} else {
         const { release } = this.options;
         const safeRelease = Math.min(Math.max(0.01, release), 2.0);
         this.gainNode.gain.linearRampToValueAtTime(0, now + safeRelease);
         this.oscillator1.stop(now + safeRelease + 0.05);
         this.oscillator2.stop(now + safeRelease + 0.05);
+        this.subOscillator.stop(now + safeRelease + 0.05);
         setTimeout(() => this.disconnect(), (safeRelease + 0.1) * 1000);
       }
 
@@ -214,14 +220,21 @@ export default class Voice {
         } catch (e) {
           console.error("Error disconnecting oscillator1:", e);
         }
-      }
-
-      if (this.oscillator2) {
+      }      if (this.oscillator2) {
         try {
           this.oscillator2.disconnect();
           this.oscillator2 = null;
         } catch (e) {
           console.error("Error disconnecting oscillator2:", e);
+        }
+      }
+
+      if (this.subOscillator) {
+        try {
+          this.subOscillator.disconnect();
+          this.subOscillator = null;
+        } catch (e) {
+          console.error("Error disconnecting sub-oscillator:", e);
         }
       }
 
@@ -315,9 +328,32 @@ export default class Voice {
         break;
       case 'oscillator1Mix':
         if (this.oscMixer1) this.oscMixer1.gain.setValueAtTime(value, now);
-        break;
-      case 'oscillator2Mix':
+        break;      case 'oscillator2Mix':
         if (this.oscMixer2) this.oscMixer2.gain.setValueAtTime(value, now);
+        break;
+      case 'subOscillatorEnabled':
+        if (this.subOscMixer) {
+          // If enabling, use the current mix value, if disabling set to 0
+          const mixValue = value ? (this.options.subOscillatorMix || 0.3) : 0;
+          this.subOscMixer.gain.setValueAtTime(mixValue, now);
+        }
+        break;
+      case 'subOscillatorMix':
+        if (this.subOscMixer && this.options.subOscillatorEnabled) {
+          this.subOscMixer.gain.setValueAtTime(value, now);
+        }
+        break;
+      case 'subOscillatorType':
+        if (this.subOscillator) this.subOscillator.type = value;
+        break;
+      case 'oscillator1PulseWidth':
+        // Note: Web Audio API doesn't support pulse width for built-in oscillators
+        // This would require custom oscillators with PeriodicWave
+        console.log('Pulse width control requires custom oscillator implementation');
+        break;
+      case 'oscillator2PulseWidth':
+        // Note: Web Audio API doesn't support pulse width for built-in oscillators
+        console.log('Pulse width control requires custom oscillator implementation');
         break;
       case 'filterCutoff':
         if (this.filter) this.filter.frequency.setValueAtTime(value, now);
@@ -342,6 +378,52 @@ export default class Voice {
         break;
       default:
         console.warn('Unknown parameter:', param);
+    }
+  }
+
+  forceKill() {
+    console.log("Force killing voice");
+    if (this.isStopped) return;
+    
+    try {
+      // Cancel any pending timeouts
+      if (this.scheduledStop) {
+        clearTimeout(this.scheduledStop);
+        this.scheduledStop = null;
+      }
+      
+      // Immediately silence and disconnect everything
+      if (this.gainNode) {
+        // Set gain to 0 immediately
+        this.gainNode.gain.cancelScheduledValues(this.audioContext.currentTime);
+        this.gainNode.gain.value = 0;
+      }
+      
+      // Force disconnect all nodes
+      this.disconnect();
+      
+      if (this.oscillator1) {
+        try { this.oscillator1.disconnect(); } catch (e) {}
+        try { this.oscillator1.stop(0); } catch (e) {}
+      }
+      
+      if (this.oscillator2) {
+        try { this.oscillator2.disconnect(); } catch (e) {}
+        try { this.oscillator2.stop(0); } catch (e) {}
+      }
+      
+      if (this.subOscillator) {
+        try { this.subOscillator.disconnect(); } catch (e) {}
+        try { this.subOscillator.stop(0); } catch (e) {}
+      }
+      
+      // Mark as stopped
+      this.isStopped = true;
+      this.isPlaying = false;
+    } catch (e) {
+      console.error("Error force killing voice:", e);
+      this.isStopped = true;
+      this.isPlaying = false;
     }
   }
 }

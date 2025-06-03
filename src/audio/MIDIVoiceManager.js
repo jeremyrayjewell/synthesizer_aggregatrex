@@ -1,6 +1,5 @@
 
-class MIDIVoiceManager {
-  constructor(audioContext) {
+class MIDIVoiceManager {  constructor(audioContext) {
     this.audioContext = audioContext;
     this.activeVoices = new Map();
     this.pendingReleases = new Map();
@@ -11,6 +10,10 @@ class MIDIVoiceManager {
     this.lastNoteOnTime = new Map();
     this.CLEANUP_INTERVAL = 2000;
     this.cleanupInterval = setInterval(() => this.performCleanup(), this.CLEANUP_INTERVAL);
+    
+    // Add special tracking for arpeggiator voices
+    this.arpeggiatedNotes = new Set();
+    this.arpeggiatedVoices = new Set();
   }
 
   createVoice(note, velocity, voiceFactory) {
@@ -236,7 +239,6 @@ class MIDIVoiceManager {
     this.lastNoteOnTime.clear();
     this.voiceCount = 0;
   }
-
   getAllVoices() {
     const allVoices = [];
     for (const [note, voices] of this.activeVoices.entries()) {
@@ -247,6 +249,150 @@ class MIDIVoiceManager {
       }
     }
     return allVoices;
+  }
+  
+  // Special method to mark a note as arpeggiated
+  markNoteAsArpeggiated(note) {
+    this.arpeggiatedNotes.add(note);
+  }
+  
+  // Creates a voice and marks it as arpeggiated if it's from the arpeggiator
+  createArpeggiatedVoice(note, velocity, voiceFactory) {
+    const voice = this.createVoice(note, velocity, voiceFactory);
+    if (voice) {
+      this.arpeggiatedVoices.add(voice);
+      this.markNoteAsArpeggiated(note);
+    }
+    return voice;
+  }
+  
+  // Method to release a specific arpeggiated note
+  releaseArpeggiatedNote(note) {
+    console.log(`Releasing specific arpeggiated note ${note}`);
+    
+    // Find and stop any arpeggiated voices for this note
+    if (this.activeVoices.has(note)) {
+      const voices = this.activeVoices.get(note);
+      voices.forEach(voice => {
+        if (this.arpeggiatedVoices.has(voice)) {
+          try {
+            if (typeof voice.stop === 'function') {
+              voice.stop(true); // Immediate stop for arpeggiated voices
+            }
+            this.arpeggiatedVoices.delete(voice);
+            this.releasedVoices.add(voice);
+          } catch (e) {
+            console.error(`Error stopping arpeggiated voice for note ${note}:`, e);
+          }
+        }
+      });
+      
+      // Clear the note from active voices
+      this.activeVoices.set(note, []);
+      this.voiceCount -= voices.length;
+    }
+    
+    // Clear any pending releases for this note
+    if (this.pendingReleases.has(note)) {
+      const timeouts = this.pendingReleases.get(note);
+      timeouts.forEach(timeoutId => clearTimeout(timeoutId));
+      this.pendingReleases.delete(note);
+    }
+    
+    // Remove from arpeggiated notes tracking
+    this.arpeggiatedNotes.delete(note);
+  }
+  
+  // Special method to release all arpeggiated notes and voices
+  releaseAllArpeggiatedNotes() {
+    console.log(`Releasing all ${this.arpeggiatedNotes.size} arpeggiated notes`);
+    
+    // First silence any active arpeggiated voices
+    if (this.arpeggiatedVoices.size > 0) {
+      this.arpeggiatedVoices.forEach(voice => {
+        if (voice && typeof voice.stop === 'function') {
+          voice.stop(true); // Immediate stop
+        }
+      });
+      this.arpeggiatedVoices.clear();
+    }
+    
+    // Clear any pending releases for arpeggiated notes
+    this.arpeggiatedNotes.forEach(note => {
+      if (this.pendingReleases.has(note)) {
+        const timeouts = this.pendingReleases.get(note);
+        timeouts.forEach(timeoutId => clearTimeout(timeoutId));
+        this.pendingReleases.delete(note);
+      }
+      
+      // Remove the note from active voices
+      if (this.activeVoices.has(note)) {
+        this.activeVoices.delete(note);
+      }
+    });
+    
+    // Clear arpeggiated notes set
+    this.arpeggiatedNotes.clear();
+    
+    // Force recalculate voice count
+    this.recalculateVoiceCount();
+  }
+  
+  recalculateVoiceCount() {
+    let count = 0;
+    for (const voices of this.activeVoices.values()) {
+      count += voices.length;
+    }
+    this.voiceCount = count;
+    return count;
+  }
+  
+  emergencyReleaseAll() {
+    console.log("🚨 EMERGENCY: Releasing all voices and clearing state");
+    
+    // Stop all scheduled voice creation
+    for (const [scheduleId, scheduled] of this.scheduledVoices.entries()) {
+      clearTimeout(scheduled.timeout);
+    }
+    this.scheduledVoices.clear();
+    
+    // Cancel all pending note releases
+    for (const [note, timeouts] of this.pendingReleases.entries()) {
+      timeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    }
+    this.pendingReleases.clear();
+    
+    // Immediately stop all active voices using the new forceKill method
+    let stoppedCount = 0;
+    for (const [note, voices] of this.activeVoices.entries()) {
+      for (const voice of voices) {
+        try {
+          if (voice) {
+            // Use the new forceKill method if available
+            if (typeof voice.forceKill === 'function') {
+              voice.forceKill();
+            } 
+            // Fallback to stop and disconnect
+            else if (typeof voice.stop === 'function') {
+              voice.stop(true); // immediate
+            }
+            this.releasedVoices.add(voice);
+            stoppedCount++;
+          }
+        } catch (e) {
+          console.error(`Error force-stopping voice for note ${note}:`, e);
+        }
+      }
+    }
+    
+    // Clear all tracking
+    this.activeVoices.clear();
+    this.lastNoteOnTime.clear();
+    if (this.arpeggiatedNotes) this.arpeggiatedNotes.clear();
+    if (this.arpeggiatedVoices) this.arpeggiatedVoices.clear();
+    this.voiceCount = 0;
+    
+    return stoppedCount;
   }
 }
 

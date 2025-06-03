@@ -5,8 +5,10 @@ import Panel from '../components/Panel';
 import Knob from '../components/Knob';
 import FilterPanel from '../components/FilterPanel';
 import ADSREnvelopePanel from '../components/ADSREnvelopePanel';
+import OscillatorPanel from '../components/OscillatorPanel';
+import ArpeggiatorPanel from '../components/ArpeggiatorPanel';
 import { useSynthContext } from '../hooks/useSynth';
-import { DEFAULT_MASTER_VOLUME } from '../constants';
+import { DEFAULT_MASTER_VOLUME } from '../constants/synth';
 
 const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
   const { camera } = useThree();
@@ -38,80 +40,61 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
 
   return (
     <group ref={groupRef}>
-      <group position={[0, 2, -2.5]}>
-        <Panel
+      <group position={[0, 2, -2.5]}>        <Panel
           width={12}
           height={6}
           depth={0.5}
           color="#1a1a1a"
           border={true}
           borderColor="#333333"
-          title="SYNTH CONTROLS"
-        >
-          <group position={[3.75, 0, 0.1]}>
-            <ADSREnvelopePanel
-              width={4}
-              height={3.5}
-              depth={0.2}
-              sliderColor="#8bc34a"
-            />
-          </group>
-          <group position={[-4.75, -2.25, 0.1]}>
-            <FilterPanel
-              filterEnabled={filterEnabled}
-              filterType={filterType}
-              filterFreq={filterFreq}
-              filterQ={filterQ}
-              width={2}
-              height={1}
-              depth={0.2}
-              knobColor="#8bc34a"
-              onFilterTypeChange={(newType, newEnabled) => {
-                setFilterEnabled(newEnabled);
-                setFilterType(newType);
-                setSynthParams((prevParams) => ({
-                  ...prevParams,
-                  filter: {
-                    ...prevParams.filter,
-                    type: newType,
-                    enabled: newEnabled
-                  }
-                }));
-                if (synth && synth.setFilter) {
-                  if (newEnabled) {
-                    synth.setFilter(newType, filterFreq, filterQ);
+          title="SYNTH CONTROLS"        >          <OscillatorPanel />
+          <ADSREnvelopePanel />
+          <FilterPanel
+            filterEnabled={filterEnabled}
+            filterType={filterType}
+            filterFreq={filterFreq}
+            filterQ={filterQ}
+            depth={0.2}
+            onFilterTypeChange={(newType, newEnabled) => {
+              setFilterEnabled(newEnabled);
+              setFilterType(newType);
+              setSynthParams((prevParams) => ({
+                ...prevParams,
+                filter: {
+                  ...prevParams.filter,
+                  type: newType,
+                  enabled: newEnabled
+                }
+              }));
+              if (synth && synth.setFilter) {
+                if (newEnabled) {
+                  synth.setFilter(newType, filterFreq, filterQ);
+                } else {
+                  if (synth.bypassFilter) {
+                    synth.bypassFilter();
                   } else {
-                    if (synth.bypassFilter) {
-                      synth.bypassFilter();
-                    } else {
-                      const bypassFreq = newType === 'lowpass' ? 20000 : 20;
-                      synth.setFilter(newType, bypassFreq, 0.1);
-                    }
+                    const bypassFreq = newType === 'lowpass' ? 20000 : 20;
+                    synth.setFilter(newType, bypassFreq, 0.1);
                   }
                 }
-              }}
-              onFilterFreqChange={(frequency) => {
-                setFilterFreq(frequency);
-                setSynthParams((prevParams) => ({
-                  ...prevParams,
-                  filter: { ...prevParams.filter, frequency }
-                }));
-                if (synth && synth.setFilter && filterEnabled) {
-                  synth.setFilter(filterType, frequency, filterQ);
-                }
-              }}
-              onFilterQChange={(newQ) => {
-                setFilterQ(newQ);
-                setSynthParams((prevParams) => ({
-                  ...prevParams,
-                  filter: { ...prevParams.filter, Q: newQ }
-                }));
-                if (synth && synth.setFilter && filterEnabled) {
-                  synth.setFilter(filterType, filterFreq, newQ);
-                }
-              }}
-            />
-          </group>
+              }
+            }}
+            onFilterFreqChange={(frequency) => {
+              setFilterFreq(frequency);
+              setSynthParams((prevParams) => ({
+                ...prevParams,
+                filter: { ...prevParams.filter, frequency }
+              }));
+              if (synth && synth.setFilter && filterEnabled) {
+                synth.setFilter(filterType, frequency, filterQ);
+              }
+            }}            onFilterQChange={(newQ) => {
+              setFilterQ(newQ);
+              setSynthParams((prevParams) => ({
+                ...prevParams,          filter: { ...prevParams.filter, Q: newQ }              }));              if (synth && synth.setFilter && filterEnabled) {                synth.setFilter(filterType, filterFreq, newQ);          }            }}          />
+            {/* Arpeggiator Panel */}
+          <ArpeggiatorPanel position={[0, -2.2, 0.3]} />
+          
           <group position={[0, 0, 0.1]}>
             <Knob
               size={1.2}
