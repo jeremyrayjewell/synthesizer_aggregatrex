@@ -13,7 +13,12 @@ import {
   ARP_VELOCITY_MODES
 } from '../constants/synth';
 
-const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth = 0.2 }) => {
+const ArpeggiatorPanel = () => {
+  // Internal component dimensions and positioning like other panels
+  const position = [2, -1.8, 0.3];
+  const width = 3;
+  const height = 2;
+  const depth = 0.2;
   const { synthParams, setSynthParams, synth } = useSynthContext();
   if (!synthParams?.arpeggiator) return null;
 
@@ -24,6 +29,18 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
   const colWidth = width / 4;
 
   const getPosition = (col, row) => [(col - 1) * colWidth, (1 - row) * rowHeight, knobZ];
+
+  const positions = {
+    onOff: getPosition(0, 0),     
+    rate: getPosition(1, 0),       
+    pattern: getPosition(2, 0),   
+    octaves: getPosition(0, 1),    
+    gate: getPosition(1, 1),       
+    swing: getPosition(2, 1),      
+    step: getPosition(0, 2),       
+    velocity: getPosition(1, 2),   
+    hold: getPosition(2, 2),      
+  };
 
   const rateValue = () => (arpeggiator.rate - ARP_RATE_MIN) / (ARP_RATE_MAX - ARP_RATE_MIN);
   const patternValue = () => {
@@ -55,11 +72,9 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
         />
       </mesh>
 
-      <Text position={[0, height/2 - 0.25, knobZ]} fontSize={0.1} color="#ffffff" anchorX="center" anchorY="middle">
+      <Text position={[0, height / 1.75 - 0.25, knobZ]} fontSize={0.09} color="#ffffff" anchorX="center" anchorY="middle">
         ARPEGGIATOR
-      </Text>
-
-      <group position={getPosition(-1, 0.7)}>
+      </Text>      <group position={positions.onOff}>
         <ToggleSwitch
           value={arpeggiator.enabled}
           onChange={(enabled) => {
@@ -91,12 +106,13 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
           }}
           size={0.2}
           onColor="#e91e63"
-          offColor="#666666"
-        />
-        <Text position={[0, -0.3, 0]} fontSize={0.1} color="white" anchorX="center" anchorY="middle">ON/OFF</Text>
+          offColor="#666666"        />
+        <Text position={[0, -0.18, 0]} fontSize={0.08} color="white" anchorX="center" anchorY="middle">
+          ON/OFF
+        </Text>
       </group>
 
-      <group position={getPosition(0, 0.7)}>
+      <group position={positions.rate}>
         <Knob
           size={knobSize}
           value={rateValue()}
@@ -112,7 +128,7 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
         />
       </group>
 
-      <group position={getPosition(1, 0.7)}>
+      <group position={positions.pattern}>
         <Knob
           size={knobSize}
           value={patternValue()}
@@ -131,7 +147,7 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
         />
       </group>
 
-      <group position={getPosition(-1, 1.7)}>
+      <group position={positions.octaves}>
         <Knob
           size={knobSize}
           value={octavesValue()}
@@ -147,7 +163,7 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
         />
       </group>
 
-      <group position={getPosition(0, 1.7)}>
+      <group position={positions.gate}>
         <Knob
           size={knobSize}
           value={gateValue()}
@@ -163,7 +179,7 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
         />
       </group>
 
-      <group position={getPosition(1, 1.7)}>
+      <group position={positions.swing}>
         <Knob
           size={knobSize}
           value={swingValue()}
@@ -182,7 +198,7 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
         />
       </group>
 
-      <group position={getPosition(-1, 2.7)}>
+      <group position={positions.step}>
         <Knob
           size={knobSize}
           value={stepLengthValue()}
@@ -201,7 +217,7 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
         />
       </group>
 
-      <group position={getPosition(0, 2.7)}>
+      <group position={positions.velocity}>
         <Knob
           size={knobSize}
           value={velocityModeValue()}
@@ -218,9 +234,7 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
           color="#e91e63"
           valueFormatter={(val) => ARP_VELOCITY_MODES[Math.round(val * (ARP_VELOCITY_MODES.length - 1))].substring(0, 4).toUpperCase()}
         />
-      </group>
-
-      <group position={getPosition(1, 2.7)}>
+      </group>      <group position={positions.hold}>
         <ToggleSwitch
           value={arpeggiator.holdMode}
           onChange={(holdMode) => {
@@ -228,9 +242,8 @@ const ArpeggiatorPanel = ({ position = [0, 0, 0], width = 3, height = 2, depth =
           }}
           size={0.2}
           onColor="#e91e63"
-          offColor="#666666"
-        />
-        <Text position={[0, -0.3, 0]} fontSize={0.1} color="white" anchorX="center" anchorY="middle">
+          offColor="#666666"        />
+        <Text position={[0, -0.18, 0]} fontSize={0.08} color="white" anchorX="center" anchorY="middle">
           HOLD
         </Text>
       </group>

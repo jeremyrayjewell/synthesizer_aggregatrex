@@ -16,7 +16,37 @@ import {
   DEFAULT_ARP_SWING,
   DEFAULT_ARP_STEP_LENGTH,
   DEFAULT_ARP_VELOCITY_MODE,
-  DEFAULT_ARP_HOLD_MODE
+  DEFAULT_ARP_HOLD_MODE,
+  // Effects imports
+  DEFAULT_DISTORTION_ENABLED,
+  DEFAULT_DISTORTION_DRIVE,
+  DEFAULT_DISTORTION_TONE,
+  DEFAULT_DISTORTION_MIX,
+  DEFAULT_EQ_ENABLED,
+  DEFAULT_EQ_LOW_GAIN,
+  DEFAULT_EQ_MID_GAIN,
+  DEFAULT_EQ_HIGH_GAIN,
+  DEFAULT_COMPRESSOR_ENABLED,
+  DEFAULT_COMPRESSOR_THRESHOLD,
+  DEFAULT_COMPRESSOR_RATIO,
+  DEFAULT_COMPRESSOR_ATTACK,
+  DEFAULT_COMPRESSOR_RELEASE,
+  DEFAULT_COMPRESSOR_MAKEUP,
+  DEFAULT_CHORUS_ENABLED,
+  DEFAULT_CHORUS_RATE,
+  DEFAULT_CHORUS_DEPTH,
+  DEFAULT_CHORUS_MIX,
+  DEFAULT_DELAY_ENABLED,
+  DEFAULT_DELAY_TIME,
+  DEFAULT_DELAY_FEEDBACK,
+  DEFAULT_DELAY_MIX,
+  DEFAULT_DELAY_DAMPING,
+  DEFAULT_REVERB_ENABLED,
+  DEFAULT_REVERB_SIZE,
+  DEFAULT_REVERB_DECAY,
+  DEFAULT_REVERB_MIX,
+  DEFAULT_REVERB_PREDELAY,
+  DEFAULT_REVERB_DAMPING
 } from '../constants/synth';
 
 export const SynthProvider = ({ children }) => {
@@ -52,15 +82,46 @@ export const SynthProvider = ({ children }) => {
       sustain: 0.7,
       release: 0.5
     },    effects: {
+      distortion: {
+        enabled: DEFAULT_DISTORTION_ENABLED,
+        drive: DEFAULT_DISTORTION_DRIVE,
+        tone: DEFAULT_DISTORTION_TONE,
+        mix: DEFAULT_DISTORTION_MIX
+      },
+      eq: {
+        enabled: DEFAULT_EQ_ENABLED,
+        lowGain: DEFAULT_EQ_LOW_GAIN,
+        midGain: DEFAULT_EQ_MID_GAIN,
+        highGain: DEFAULT_EQ_HIGH_GAIN
+      },
+      compressor: {
+        enabled: DEFAULT_COMPRESSOR_ENABLED,
+        threshold: DEFAULT_COMPRESSOR_THRESHOLD,
+        ratio: DEFAULT_COMPRESSOR_RATIO,
+        attack: DEFAULT_COMPRESSOR_ATTACK,
+        release: DEFAULT_COMPRESSOR_RELEASE,
+        makeupGain: DEFAULT_COMPRESSOR_MAKEUP
+      },
+      chorus: {
+        enabled: DEFAULT_CHORUS_ENABLED,
+        rate: DEFAULT_CHORUS_RATE,
+        depth: DEFAULT_CHORUS_DEPTH,
+        mix: DEFAULT_CHORUS_MIX
+      },
       delay: {
-        time: 0.3,
-        feedback: 0.3,
-        mix: 0.2
+        enabled: DEFAULT_DELAY_ENABLED,
+        time: DEFAULT_DELAY_TIME,
+        feedback: DEFAULT_DELAY_FEEDBACK,
+        mix: DEFAULT_DELAY_MIX,
+        damping: DEFAULT_DELAY_DAMPING
       },
       reverb: {
-        size: 0.5,
-        dampening: 3000,
-        mix: 0.2
+        enabled: DEFAULT_REVERB_ENABLED,
+        size: DEFAULT_REVERB_SIZE,
+        decay: DEFAULT_REVERB_DECAY,
+        mix: DEFAULT_REVERB_MIX,
+        predelay: DEFAULT_REVERB_PREDELAY,
+        damping: DEFAULT_REVERB_DAMPING
       }
     },
     arpeggiator: {
@@ -111,6 +172,50 @@ export const SynthProvider = ({ children }) => {
           filterCutoff: synthParams.filter.frequency,
           filterQ: synthParams.filter.Q
         };
+
+        // Update effects parameters
+        if (synthRef.current.effectChain && synthParams.effects) {
+          // Distortion
+          synthRef.current.setParam('distortion.enabled', synthParams.effects.distortion.enabled);
+          synthRef.current.setParam('distortion.drive', synthParams.effects.distortion.drive);
+          synthRef.current.setParam('distortion.tone', synthParams.effects.distortion.tone);
+          synthRef.current.setParam('distortion.mix', synthParams.effects.distortion.mix);
+          
+          // EQ
+          synthRef.current.setParam('eq.enabled', synthParams.effects.eq.enabled);
+          synthRef.current.setParam('eq.lowGain', synthParams.effects.eq.lowGain);
+          synthRef.current.setParam('eq.midGain', synthParams.effects.eq.midGain);
+          synthRef.current.setParam('eq.highGain', synthParams.effects.eq.highGain);
+          
+          // Compressor
+          synthRef.current.setParam('compressor.enabled', synthParams.effects.compressor.enabled);
+          synthRef.current.setParam('compressor.threshold', synthParams.effects.compressor.threshold);
+          synthRef.current.setParam('compressor.ratio', synthParams.effects.compressor.ratio);
+          synthRef.current.setParam('compressor.attack', synthParams.effects.compressor.attack);
+          synthRef.current.setParam('compressor.release', synthParams.effects.compressor.release);
+          synthRef.current.setParam('compressor.makeupGain', synthParams.effects.compressor.makeupGain);
+          
+          // Chorus
+          synthRef.current.setParam('chorus.enabled', synthParams.effects.chorus.enabled);
+          synthRef.current.setParam('chorus.rate', synthParams.effects.chorus.rate);
+          synthRef.current.setParam('chorus.depth', synthParams.effects.chorus.depth);
+          synthRef.current.setParam('chorus.mix', synthParams.effects.chorus.mix);
+          
+          // Delay
+          synthRef.current.setParam('delay.enabled', synthParams.effects.delay.enabled);
+          synthRef.current.setParam('delay.time', synthParams.effects.delay.time);
+          synthRef.current.setParam('delay.feedback', synthParams.effects.delay.feedback);
+          synthRef.current.setParam('delay.mix', synthParams.effects.delay.mix);
+          synthRef.current.setParam('delay.damping', synthParams.effects.delay.damping);
+          
+          // Reverb
+          synthRef.current.setParam('reverb.enabled', synthParams.effects.reverb.enabled);
+          synthRef.current.setParam('reverb.size', synthParams.effects.reverb.size);
+          synthRef.current.setParam('reverb.decay', synthParams.effects.reverb.decay);
+          synthRef.current.setParam('reverb.mix', synthParams.effects.reverb.mix);
+          synthRef.current.setParam('reverb.predelay', synthParams.effects.reverb.predelay);
+          synthRef.current.setParam('reverb.damping', synthParams.effects.reverb.damping);
+        }
 
         // Update arpeggiator parameters if they exist
         if (synthRef.current.updateArpeggiator && synthParams.arpeggiator) {

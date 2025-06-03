@@ -65,3 +65,51 @@ export const ARP_VELOCITY_MODES = ['original', 'fixed', 'accent', 'random'];
 export const DEFAULT_ARP_VELOCITY_MODE = 'original';
 
 export const DEFAULT_ARP_HOLD_MODE = false;
+
+// Effects Constants
+export const EFFECT_TYPES = ['distortion', 'eq', 'compressor', 'chorus', 'delay', 'reverb'];
+
+// Distortion Constants
+export const DEFAULT_DISTORTION_ENABLED = false;
+export const DEFAULT_DISTORTION_DRIVE = 0.3;
+export const DEFAULT_DISTORTION_TONE = 0.5;
+export const DEFAULT_DISTORTION_MIX = 0.5;
+
+// EQ Constants
+export const DEFAULT_EQ_ENABLED = false;
+export const DEFAULT_EQ_LOW_GAIN = 0;
+export const DEFAULT_EQ_LOW_FREQ = 320;
+export const DEFAULT_EQ_MID_GAIN = 0;
+export const DEFAULT_EQ_MID_FREQ = 1000;
+export const DEFAULT_EQ_MID_Q = 1;
+export const DEFAULT_EQ_HIGH_GAIN = 0;
+export const DEFAULT_EQ_HIGH_FREQ = 3200;
+
+// Compressor Constants
+export const DEFAULT_COMPRESSOR_ENABLED = false;
+export const DEFAULT_COMPRESSOR_THRESHOLD = -24;
+export const DEFAULT_COMPRESSOR_RATIO = 4;
+export const DEFAULT_COMPRESSOR_ATTACK = 0.003;
+export const DEFAULT_COMPRESSOR_RELEASE = 0.25;
+export const DEFAULT_COMPRESSOR_MAKEUP = 1.2;
+
+// Chorus Constants
+export const DEFAULT_CHORUS_ENABLED = false;
+export const DEFAULT_CHORUS_RATE = 0.5;
+export const DEFAULT_CHORUS_DEPTH = 0.3;
+export const DEFAULT_CHORUS_MIX = 0.5;
+
+// Delay Constants
+export const DEFAULT_DELAY_ENABLED = false;
+export const DEFAULT_DELAY_TIME = 0.3;
+export const DEFAULT_DELAY_FEEDBACK = 0.3;
+export const DEFAULT_DELAY_MIX = 0.3;
+export const DEFAULT_DELAY_DAMPING = 0.5;
+
+// Reverb Constants
+export const DEFAULT_REVERB_ENABLED = false;
+export const DEFAULT_REVERB_SIZE = 0.5;
+export const DEFAULT_REVERB_DECAY = 2;
+export const DEFAULT_REVERB_MIX = 0.3;
+export const DEFAULT_REVERB_PREDELAY = 0.02;
+export const DEFAULT_REVERB_DAMPING = 0.3;

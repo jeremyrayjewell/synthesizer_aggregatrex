@@ -7,6 +7,7 @@ import FilterPanel from '../components/FilterPanel';
 import ADSREnvelopePanel from '../components/ADSREnvelopePanel';
 import OscillatorPanel from '../components/OscillatorPanel';
 import ArpeggiatorPanel from '../components/ArpeggiatorPanel';
+import EffectsPanel from '../components/EffectsPanel';
 import { useSynthContext } from '../hooks/useSynth';
 import { DEFAULT_MASTER_VOLUME } from '../constants/synth';
 
@@ -93,7 +94,7 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
               setSynthParams((prevParams) => ({
                 ...prevParams,          filter: { ...prevParams.filter, Q: newQ }              }));              if (synth && synth.setFilter && filterEnabled) {                synth.setFilter(filterType, filterFreq, newQ);          }            }}          />
             {/* Arpeggiator Panel */}
-          <ArpeggiatorPanel position={[0, -2.2, 0.3]} />
+          <ArpeggiatorPanel />
           
           <group position={[0, 0, 0.1]}>
             <Knob
@@ -125,9 +126,26 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
                 return `${Math.round(val * 100)}%`;
               }}
             />
-          </group>
-        </Panel>
+          </group>        </Panel>
       </group>
+      
+      {/* Effects Panel */}
+      <group position={[0, -4.5, -2.5]}>
+        <EffectsPanel
+          effects={synthParams?.effects || {}}
+          onEffectChange={(updatedEffects) => {
+            setSynthParams((prevParams) => ({
+              ...prevParams,
+              effects: updatedEffects
+            }));
+          }}
+          position={[0, 0, 0]}
+          width={10}
+          height={3}
+          depth={0.3}
+        />
+      </group>
+      
       <group position={[0, -2, 0]}>
         <Keyboard3D
           startNote={36}

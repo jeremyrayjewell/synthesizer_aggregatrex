@@ -1,6 +1,7 @@
 import Voice from './Voice';
 import MIDIVoiceManager from './MIDIVoiceManager';
 import Arpeggiator from './Arpeggiator';
+import EffectChain from './EffectChain';
 import { 
   DEFAULT_MASTER_VOLUME, 
   DEFAULT_DETUNE, 
@@ -24,7 +25,13 @@ export default class SynthEngine {
     this.audioContext = audioContext;
     this.masterGain = this.audioContext.createGain();
     this.masterGain.gain.value = DEFAULT_MASTER_VOLUME;
-    this.masterGain.connect(this.audioContext.destination);    this.parameters = {
+    
+    // Create effect chain
+    this.effectChain = new EffectChain(this.audioContext);
+    
+    // Connect master gain through effect chain to destination
+    this.masterGain.connect(this.effectChain.input);
+    this.effectChain.output.connect(this.audioContext.destination);this.parameters = {
       oscillator1Type: 'sawtooth',
       oscillator1Detune: DEFAULT_DETUNE,
       oscillator1Mix: 0.8,  // Increased from 0.5
@@ -224,9 +231,28 @@ export default class SynthEngine {
       }
     }
   }
-
   setParam(param, value) {
     console.log('Setting synth param:', param, value);
+    
+    // Handle effect parameters
+    if (param.startsWith('effect_')) {
+      const parts = param.split('_');
+      if (parts.length === 3) {
+        const effectName = parts[1];
+        const paramName = parts[2];
+        this.effectChain.setEffectParam(effectName, paramName, value);
+        return;
+      }
+    }
+    
+    // Handle effect enable/disable
+    if (param.startsWith('effectEnabled_')) {
+      const effectName = param.replace('effectEnabled_', '');
+      this.effectChain.toggleEffect(effectName, value);
+      return;
+    }
+    
+    // Handle regular synth parameters
     if (this.parameters.hasOwnProperty(param)) {
       this.parameters[param] = value;
       if (this.voiceManager && typeof this.voiceManager.getAllVoices === 'function') {
@@ -329,6 +355,11 @@ export default class SynthEngine {
       this.arpeggiator.dispose();
     }
     
+    // Dispose the effect chain
+    if (this.effectChain) {
+      this.effectChain.dispose();
+    }
+    
     if (this.voiceManager) {
       this.voiceManager.dispose();
     }
@@ -373,5 +404,32 @@ export default class SynthEngine {
     }
     
     return false;
+  }
+
+  // Effects management methods
+  setEffectParam(effectName, paramName, value) {
+    if (this.effectChain) {
+      this.effectChain.setEffectParam(effectName, paramName, value);
+    }
+  }
+
+  toggleEffect(effectName, enabled) {
+    if (this.effectChain) {
+      this.effectChain.toggleEffect(effectName, enabled);
+    }
+  }
+
+  getEffectParams(effectName) {
+    return this.effectChain ? this.effectChain.getEffectParams(effectName) : null;
+  }
+
+  getAllEffects() {
+    return this.effectChain ? this.effectChain.getAllEffects() : {};
+  }
+
+  setEffectPreset(presetName) {
+    if (this.effectChain) {
+      this.effectChain.setPreset(presetName);
+    }
   }
 }

@@ -64,10 +64,8 @@ const ToggleSwitch = ({ value, onChange, position, label, size = COMMON_SPACING.
           color={value ? "#4CAF50" : "#666666"}
           emissive={value ? "#2E7D32" : "#333333"}
           emissiveIntensity={0.3}
-        />
-      </mesh>
-      <Text
-        position={[0, -size * 0.8, 0.06]}
+        />      </mesh>      <Text
+        position={[0, -size * 0.45, 0.06]}
         fontSize={0.06}
         color="white"
         anchorX="center"

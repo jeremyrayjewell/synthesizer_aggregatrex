@@ -46,30 +46,7 @@ const ToggleSwitch = ({
         <meshStandardMaterial 
           color="white" 
           roughness={0.2}
-        />
-      </mesh>
-      
-      {/* Status text */}
-      <Text
-        position={[0, 0, size * 0.12]}
-        fontSize={size * 0.12}
-        color="white"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {value ? 'ON' : 'OFF'}
-      </Text>
-      
-      {/* Label */}
-      <Text
-        position={[0, -size * 0.8, 0]}
-        fontSize={size * 0.15}
-        color="#cccccc"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {label}
-      </Text>
+        />      </mesh>
     </group>
   );
 };
