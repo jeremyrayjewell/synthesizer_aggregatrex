@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, Suspense, useMemo } from 'react';
 import { Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-const TexturedMaterial = ({ color, width, height, textures }) => {
+const TexturedMaterial = React.memo(({ color, width, height, textures }) => {
   useEffect(() => {
     if (textures) {
       const setupTexture = (texture) => {
@@ -17,7 +17,6 @@ const TexturedMaterial = ({ color, width, height, textures }) => {
       setupTexture(textures.displacementMap);
     }
   }, [textures, width, height]);
-
   return (
     <meshStandardMaterial 
       map={textures.map}
@@ -25,13 +24,13 @@ const TexturedMaterial = ({ color, width, height, textures }) => {
       displacementMap={textures.displacementMap}
       color={color}
       displacementScale={0.01}
-      roughness={0.9}
-      metalness={0.1}
-    />
-  );
-};
+      roughness={0.3}
+      metalness={0.6}
+      envMapIntensity={2.0}
+    />  );
+});
 
-const PanelContent = ({ 
+const PanelContent = React.memo(({ 
   width, 
   height, 
   depth,
@@ -54,8 +53,12 @@ const PanelContent = ({
     displacementMap: '/textures/leather/brown_leather_disp_4k.png'
   });
 
+  const panelColor = useMemo(() => 
+    hovered ? new THREE.Color(color).addScalar(0.1) : new THREE.Color(color), 
+    [hovered, color]
+  );
   return (
-    <group position={position} rotation={rotation}>
+    <group position={position} rotation={rotation} scale={[1.5, 1.5, 1.5]}>
       <mesh
         ref={meshRef}
         onPointerOver={(e) => {
@@ -74,12 +77,12 @@ const PanelContent = ({
             width={width}
             height={height}
             textures={textures}
-          />
-        ) : (
+          />        ) : (
           <meshStandardMaterial 
             color={color} 
-            roughness={0.7}
-            metalness={0.2}
+            roughness={0.2}
+            metalness={0.7}
+            envMapIntensity={1.8}
           />
         )}
       </mesh>
@@ -106,20 +109,19 @@ const PanelContent = ({
           <boxGeometry args={[width * 0.8, 0.02, 0.01]} />
           <meshStandardMaterial color={borderColor} emissive={borderColor} emissiveIntensity={0.2} />
         </mesh>
-      )}
-      <group position={[0, 0, depth/2 + 0.01]}>
+      )}      <group position={[0, 0, depth/2 + 0.01]}>
         {children}
       </group>
     </group>
   );
-};
+});
 
-const Panel = (props) => {
+const Panel = React.memo((props) => {
   return (
     <Suspense fallback={null}>
       <PanelContent {...props} />
     </Suspense>
   );
-};
+});
 
 export default Panel;

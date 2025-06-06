@@ -3,10 +3,9 @@ import Knob from './Knob';
 import ToggleSwitch from './ToggleSwitch';
 import { Text } from '@react-three/drei';
 import { createPositioning, COMMON_SPACING } from '../constants/spacing';
+import { useSynthContext } from '../hooks/useSynth';
 
 const EffectsPanel = ({
-  effects = {},
-  onEffectChange = () => {},
   position = [0, 0, 0],
   width = 6,
   height = 4,
@@ -14,6 +13,9 @@ const EffectsPanel = ({
   color = '#2c2c2c',
   knobColor = '#ff6b35'
 }) => {
+  const { synthParams, setSynthParams, synth } = useSynthContext();
+  const effects = synthParams?.effects || {};
+  
   const { topY, centerY, bottomY, leftX, rightX, centerX, knobZ, textZ } = createPositioning(width, height, depth);
   
   // Create a 3x2 grid layout for effects
@@ -25,23 +27,30 @@ const EffectsPanel = ({
     delay: [centerX, bottomY * 0.8, knobZ],
     reverb: [rightX * 1.5, bottomY * 0.8, knobZ]
   };
-
   const handleEffectParamChange = (effectName, paramName, value) => {
-    onEffectChange({
+    const updatedEffects = {
       ...effects,
       [effectName]: {
         ...effects[effectName],
         [paramName]: value
       }
-    });
-  };
-
-  const DistortionSection = ({ position }) => (
+    };
+    
+    setSynthParams(prev => ({
+      ...prev,
+      effects: updatedEffects
+    }));
+    
+    // Update the synth engine with the new effect parameter
+    if (synth && synth.setEffectParam) {
+      synth.setEffectParam(effectName, paramName, value);
+    }
+  };  const DistortionSection = ({ position }) => (
     <group position={position}>
       {/* Effect title */}
       <Text
         position={[0, 0.4, 0]}
-        fontSize={0.08}
+        fontSize={0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -54,16 +63,15 @@ const EffectsPanel = ({
         <ToggleSwitch
           value={effects.distortion?.enabled || false}
           onChange={(value) => handleEffectParamChange('distortion', 'enabled', value)}
-          size={0.04}
+          size={0.15}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-      
-      {/* Parameter knobs arranged in a small grid */}
-      <group position={[-0.15, 0, 0]}>
+        {/* Parameter knobs arranged in a triangle pattern */}
+      <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.12}
+          size={0.6}
           value={(effects.distortion?.drive || 0) / 20}
           min={0}
           max={1}
@@ -74,9 +82,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.15, 0, 0]}>
+      <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.12}
+          size={0.6}
           value={(effects.distortion?.tone || 0.5)}
           min={0}
           max={1}
@@ -87,9 +95,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, -0.2, 0]}>
+      <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.12}
+          size={0.6}
           value={effects.distortion?.mix || 0.5}
           min={0}
           max={1}
@@ -100,13 +108,11 @@ const EffectsPanel = ({
         />
       </group>
     </group>
-  );
-
-  const EQSection = ({ position }) => (
+  );  const EQSection = ({ position }) => (
     <group position={position}>
       <Text
         position={[0, 0.4, 0]}
-        fontSize={0.08}
+        fontSize={0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -118,15 +124,14 @@ const EffectsPanel = ({
         <ToggleSwitch
           value={effects.eq?.enabled || false}
           onChange={(value) => handleEffectParamChange('eq', 'enabled', value)}
-          size={0.04}
+          size={0.15}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-      
-      <group position={[-0.15, 0.05, 0]}>
+        <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.eq?.lowGain || 0 + 12) / 24}
           min={0}
           max={1}
@@ -137,9 +142,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, 0.05, 0]}>
+      <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.eq?.midGain || 0 + 12) / 24}
           min={0}
           max={1}
@@ -150,9 +155,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.15, 0.05, 0]}>
+      <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.eq?.highGain || 0 + 12) / 24}
           min={0}
           max={1}
@@ -164,12 +169,10 @@ const EffectsPanel = ({
       </group>
     </group>
   );
-
   const CompressorSection = ({ position }) => (
-    <group position={position}>
-      <Text
+    <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.08}
+        fontSize={0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -177,19 +180,18 @@ const EffectsPanel = ({
         COMPRESSOR
       </Text>
       
-      <group position={[0, 0.25, 0]}>
-        <ToggleSwitch
+      <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.compressor?.enabled || false}
           onChange={(value) => handleEffectParamChange('compressor', 'enabled', value)}
-          size={0.04}
+          size={0.15}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-      
-      <group position={[-0.15, 0.05, 0]}>
+        {/* Parameter knobs arranged in a uniform triangle pattern */}
+      <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.compressor?.threshold || -12 + 60) / 60}
           min={0}
           max={1}
@@ -200,9 +202,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, 0.05, 0]}>
+      <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.compressor?.ratio || 4 - 1) / 19}
           min={0}
           max={1}
@@ -213,9 +215,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.15, 0.05, 0]}>
+      <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.compressor?.makeupGain || 0 + 20) / 20}
           min={0}
           max={1}
@@ -226,13 +228,10 @@ const EffectsPanel = ({
         />
       </group>
     </group>
-  );
-
-  const ChorusSection = ({ position }) => (
-    <group position={position}>
-      <Text
+  );  const ChorusSection = ({ position }) => (
+    <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.08}
+        fontSize={0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -240,19 +239,18 @@ const EffectsPanel = ({
         CHORUS
       </Text>
       
-      <group position={[0, 0.25, 0]}>
-        <ToggleSwitch
+      <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.chorus?.enabled || false}
           onChange={(value) => handleEffectParamChange('chorus', 'enabled', value)}
-          size={0.04}
+          size={0.15}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-      
-      <group position={[-0.15, 0, 0]}>
+        {/* Parameter knobs arranged in a uniform triangle pattern */}
+      <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.12}
+          size={0.6}
           value={(effects.chorus?.rate || 0.5) / 10}
           min={0}
           max={1}
@@ -263,9 +261,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.15, 0, 0]}>
+      <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.12}
+          size={0.6}
           value={effects.chorus?.depth || 0.002}
           min={0}
           max={0.01}
@@ -276,9 +274,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, -0.2, 0]}>
+      <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.12}
+          size={0.6}
           value={effects.chorus?.mix || 0.3}
           min={0}
           max={1}
@@ -289,13 +287,10 @@ const EffectsPanel = ({
         />
       </group>
     </group>
-  );
-
-  const DelaySection = ({ position }) => (
-    <group position={position}>
-      <Text
+  );  const DelaySection = ({ position }) => (
+    <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.08}
+        fontSize={0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -303,19 +298,18 @@ const EffectsPanel = ({
         DELAY
       </Text>
       
-      <group position={[0, 0.25, 0]}>
-        <ToggleSwitch
+      <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.delay?.enabled || false}
           onChange={(value) => handleEffectParamChange('delay', 'enabled', value)}
-          size={0.04}
+          size={0.15}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-      
-      <group position={[-0.15, 0.05, 0]}>
+        {/* Parameter knobs arranged in a uniform triangle pattern */}
+      <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.delay?.time || 0.25)}
           min={0}
           max={1}
@@ -326,9 +320,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, 0.05, 0]}>
+      <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={effects.delay?.feedback || 0.3}
           min={0}
           max={0.95}
@@ -339,9 +333,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.15, 0.05, 0]}>
+      <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={effects.delay?.mix || 0.2}
           min={0}
           max={1}
@@ -352,13 +346,10 @@ const EffectsPanel = ({
         />
       </group>
     </group>
-  );
-
-  const ReverbSection = ({ position }) => (
-    <group position={position}>
-      <Text
+  );  const ReverbSection = ({ position }) => (
+    <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.08}
+        fontSize={0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -366,19 +357,18 @@ const EffectsPanel = ({
         REVERB
       </Text>
       
-      <group position={[0, 0.25, 0]}>
-        <ToggleSwitch
+      <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.reverb?.enabled || false}
           onChange={(value) => handleEffectParamChange('reverb', 'enabled', value)}
-          size={0.04}
+          size={0.15}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-      
-      <group position={[-0.15, 0.05, 0]}>
+        {/* Parameter knobs arranged in a uniform triangle pattern */}
+      <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={effects.reverb?.size || 0.5}
           min={0}
           max={1}
@@ -389,9 +379,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, 0.05, 0]}>
+      <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={(effects.reverb?.decay || 2) / 10}
           min={0}
           max={1}
@@ -402,9 +392,9 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.15, 0.05, 0]}>
+      <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.1}
+          size={0.55}
           value={effects.reverb?.mix || 0.2}
           min={0}
           max={1}
@@ -416,19 +406,20 @@ const EffectsPanel = ({
       </group>
     </group>
   );
-
   return (
-    <group position={position}>
-      {/* Main panel background */}
+    <group position={position} scale={[1.5, 1.5, 1.5]}>      {/* Main panel background */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} roughness={0.8} metalness={0.1} />
-      </mesh>
-
-      {/* Panel title */}
+        <meshStandardMaterial 
+          color={color} 
+          roughness={0.15} 
+          metalness={0.8} 
+          envMapIntensity={1.8}
+        />
+      </mesh>      {/* Panel title */}
       <Text
         position={[0, height / 2 - 0.2, textZ]}
-        fontSize={0.15}
+        fontSize={0.4}
         color="white"
         anchorX="center"
         anchorY="middle"

@@ -187,12 +187,15 @@ const ADSREnvelopePanel = () => {
   const attackPosition = timeToSliderPosition(attack, 3000);
   const decayPosition = timeToSliderPosition(decay, 3000);
   const sustainPosition = sustain;
-  const releasePosition = timeToSliderPosition(release, 5000);
-  return (
-    <group position={position}>
-      <mesh position={[0, 0, 0]}>
+  const releasePosition = timeToSliderPosition(release, 5000);  return (
+    <group position={position} scale={[1.5, 1.5, 1.5]}>      <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
+        <meshStandardMaterial 
+          color={color} 
+          roughness={0.15} 
+          metalness={0.8}
+          envMapIntensity={1.8}
+        />
       </mesh>
 
       <Text

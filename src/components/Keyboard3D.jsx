@@ -29,10 +29,14 @@ const Key = ({ note, x, isBlackKey, isPressed, onNoteOn, onNoteOff }) => {
         e.stopPropagation();
         onNoteOff(note);
       }}
-    >
-      <mesh position={[0, height / 2 - (isPressed ? pressDepth : 0), 0]}>
+    >      <mesh position={[0, height / 2 - (isPressed ? pressDepth : 0), 0]}>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} />
+        <meshStandardMaterial 
+          color={color} 
+          roughness={isBlackKey ? 0.1 : 0.05}
+          metalness={isBlackKey ? 0.9 : 0.8}
+          envMapIntensity={2.5}
+        />
       </mesh>
     </group>
   );

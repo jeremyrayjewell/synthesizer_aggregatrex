@@ -14,6 +14,11 @@ export default class Arpeggiator {  constructor(audioContext, voiceManager) {
     this.activeNotes = [];
     this.notesInQueue = [];
     this.activeTimeouts = []; // Track all setTimeout IDs for cleanup
+    
+    // Performance optimization: use requestAnimationFrame instead of multiple setTimeout
+    this.animationFrameId = null;
+    this.lastStepTime = 0;
+    
     this.currentStep = 0;
     this.schedulerInterval = null;
     this.lookaheadTime = 0.1; // 100ms lookahead
@@ -143,27 +148,35 @@ export default class Arpeggiator {  constructor(audioContext, voiceManager) {
       this.activeNotes.splice(index, 1);
       this.originalVelocities.delete(note);
     }
-  }
-    start() {
-    if (this.schedulerInterval) return; // Already running
+  }  start() {
+    if (this.schedulerInterval || this.animationFrameId) return; // Already running
     
     this.currentStep = 0;
     this.nextStepTime = this.audioContext.currentTime; // Reset next step time
+    this.lastStepTime = performance.now();
     
-    const scheduleAhead = () => {
-      const currentTime = this.audioContext.currentTime;
-      const futureTime = currentTime + this.lookaheadTime;
+    // Performance optimization: use requestAnimationFrame for more efficient scheduling
+    const scheduleLoop = (currentTime) => {
+      if (!this.isEnabled) return;
       
-      // Schedule notes for the next time window
-      if (this.activeNotes.length > 0) {
-        this.scheduleNotes(currentTime, futureTime);
+      const audioCurrentTime = this.audioContext.currentTime;
+      const futureTime = audioCurrentTime + this.lookaheadTime;
+      
+      // Only process if enough time has passed
+      if (currentTime - this.lastStepTime >= 16) { // ~60fps
+        if (this.activeNotes.length > 0) {
+          this.scheduleNotes(audioCurrentTime, futureTime);
+        }
+        this.lastStepTime = currentTime;
       }
+      
+      this.animationFrameId = requestAnimationFrame(scheduleLoop);
     };
     
     console.log("Arpeggiator starting with rate:", this.rate, "BPM");
     
-    // Start scheduler
-    this.schedulerInterval = setInterval(scheduleAhead, 25); // 40 times per second
+    // Start scheduler with requestAnimationFrame for better performance
+    this.animationFrameId = requestAnimationFrame(scheduleLoop);
   }  stop() {
     console.log("Stopping arpeggiator");
     
@@ -173,23 +186,35 @@ export default class Arpeggiator {  constructor(audioContext, voiceManager) {
       this.schedulerInterval = null;
     }
     
+    // Performance optimization: cancel animation frame
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    
     // Reset step counter and timing
     this.currentStep = 0;
     this.nextStepTime = this.audioContext.currentTime; 
     
     // Use the more robust note clearing method
     this.clearHeldNotes();
-    
-    // Add an additional forced cleanup after a small delay
+      // Add an additional forced cleanup after a small delay
     // This catches any notes that might have been scheduled just before stopping
-    setTimeout(() => {
-      if (this.voiceManager && !this.isEnabled) {
-        console.log("Performing additional arpeggiator cleanup");
-        if (typeof this.voiceManager.releaseAllArpeggiatedNotes === 'function') {
-          this.voiceManager.releaseAllArpeggiatedNotes();
+    // Performance optimization: Use requestAnimationFrame instead of setTimeout for cleanup
+    const cleanupTime = performance.now() + 200;
+    const performCleanup = (currentTime) => {
+      if (currentTime >= cleanupTime) {
+        if (this.voiceManager && !this.isEnabled) {
+          console.log("Performing additional arpeggiator cleanup");
+          if (typeof this.voiceManager.releaseAllArpeggiatedNotes === 'function') {
+            this.voiceManager.releaseAllArpeggiatedNotes();
+          }
         }
+      } else {
+        requestAnimationFrame(performCleanup);
       }
-    }, 200);
+    };
+    requestAnimationFrame(performCleanup);
   }
   
   setVoiceFactory(factory) {
@@ -295,12 +320,11 @@ export default class Arpeggiator {  constructor(audioContext, voiceManager) {
     if (!this.notesInQueue.some(ni => ni.note === note && ni.onTime === onTime)) {
       this.notesInQueue.push(noteInfo);
     }
-    
-    // Special marker in voice manager to track arpeggiator notes
+      // Special marker in voice manager to track arpeggiator notes
     this.voiceManager.markNoteAsArpeggiated(note);
     
-    // Schedule the note-on timeout
-    const noteOnTimeoutId = setTimeout(() => {
+    // Performance optimization: Use Web Audio API scheduling instead of setTimeout
+    const scheduleNoteOn = () => {
       // Safety check - don't play if arpeggiator is disabled
       if (!this.isEnabled) {
         console.log(`Skipping scheduled note ${note} because arpeggiator disabled`);
@@ -310,28 +334,34 @@ export default class Arpeggiator {  constructor(audioContext, voiceManager) {
       console.log(`Playing arpeggiator note ${note} at time ${this.audioContext.currentTime.toFixed(3)}`);
       
       // Create the voice using special method that marks it as an arpeggiator voice
-      try {
-        this.voiceManager.createArpeggiatedVoice(note, velocity, this.voiceFactory);
+      try {        this.voiceManager.createArpeggiatedVoice(note, velocity, this.voiceFactory);
       } catch (err) {
         console.error('Error creating arpeggiator voice:', err);
       }
-      
-      // Remove timeout ID from tracking array
-      const timeoutIndex = this.activeTimeouts.indexOf(noteOnTimeoutId);
-      if (timeoutIndex !== -1) {
-        this.activeTimeouts.splice(timeoutIndex, 1);
-      }
-    }, Math.max(0, noteOnDelay * 1000));
+    };
     
-    // Track this timeout
-    this.activeTimeouts.push(noteOnTimeoutId);
-    
-    // Safety check - ensure noteOff is not in the past
+    // Schedule the note using Web Audio API timing instead of setTimeout
+    if (noteOnDelay <= 0.001) {
+      // Execute immediately if time has passed
+      scheduleNoteOn();
+    } else {
+      // Schedule for future execution using requestAnimationFrame for better performance
+      const scheduleTime = performance.now() + (noteOnDelay * 1000);
+      const checkSchedule = (currentTime) => {
+        if (currentTime >= scheduleTime) {
+          scheduleNoteOn();
+        } else {
+          requestAnimationFrame(checkSchedule);
+        }
+      };
+      requestAnimationFrame(checkSchedule);
+    }
+      // Safety check - ensure noteOff is not in the past
     const noteOffDelay = offTime - this.audioContext.currentTime;
     if (noteOffDelay < 0) return;
     
-    // Schedule the note-off timeout
-    const noteOffTimeoutId = setTimeout(() => {
+    // Performance optimization: Use requestAnimationFrame instead of setTimeout for note-off
+    const scheduleNoteOff = () => {
       // Release the specific arpeggiated note
       try {
         console.log(`Releasing arpeggiator note ${note} at time ${this.audioContext.currentTime.toFixed(3)}`);
@@ -356,16 +386,24 @@ export default class Arpeggiator {  constructor(audioContext, voiceManager) {
       if (index !== -1) {
         this.notesInQueue.splice(index, 1);
       }
-      
-      // Remove timeout ID from tracking array
-      const timeoutIndex = this.activeTimeouts.indexOf(noteOffTimeoutId);
-      if (timeoutIndex !== -1) {
-        this.activeTimeouts.splice(timeoutIndex, 1);
-      }
-    }, Math.max(0, noteOffDelay * 1000));
+    };
     
-    // Track this timeout
-    this.activeTimeouts.push(noteOffTimeoutId);
+    // Schedule note-off using requestAnimationFrame for better performance
+    if (noteOffDelay <= 0.001) {
+      // Execute immediately if time has passed
+      scheduleNoteOff();
+    } else {
+      // Schedule for future execution
+      const scheduleTime = performance.now() + (noteOffDelay * 1000);
+      const checkSchedule = (currentTime) => {
+        if (currentTime >= scheduleTime) {
+          scheduleNoteOff();
+        } else {
+          requestAnimationFrame(checkSchedule);
+        }
+      };
+      requestAnimationFrame(checkSchedule);
+    }
   }
   
   getNotesToPlay() {

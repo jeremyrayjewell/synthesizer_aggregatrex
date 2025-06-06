@@ -1,8 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-const Knob = ({
+const Knob = React.memo(({
   value = 0,
   min = 0,
   max = 1,
@@ -20,11 +20,13 @@ const Knob = ({
   const lastUpdateTime = useRef(0);
   const hasInitialized = useRef(false);
   const blockPropUpdates = useRef(false);
-
-  const valueToAngle = (val) => {
+  const valueToAngle = useCallback((val) => {
     const normalized = (val - min) / (max - min);
     return normalized * Math.PI * 1.5 - Math.PI * 0.75;
-  };
+  }, [min, max]);
+
+  const baseColor = useMemo(() => new THREE.Color(color), [color]);
+  const highlightColor = useMemo(() => baseColor.clone().addScalar(0.2), [baseColor]);
 
   useEffect(() => {
     if (!blockPropUpdates.current && knobRef.current) {
@@ -123,11 +125,11 @@ const Knob = ({
         onPointerDown={handlePointerDown}
         rotation={[Math.PI / 2, 0, 0]}
       >
-        <cylinderGeometry args={[size * 0.3, size * 0.25, size * 0.15, 32]} />
-        <meshStandardMaterial
+        <cylinderGeometry args={[size * 0.3, size * 0.25, size * 0.15, 32]} />        <meshStandardMaterial
           color={isDragging ? new THREE.Color(color).addScalar(0.2) : color}
-          roughness={0.7}
-          metalness={0.3}
+          roughness={0.2}
+          metalness={0.8}
+          envMapIntensity={2.0}
         />
         <mesh position={[0, size * 0.22, 0.08]}>
           <sphereGeometry args={[size * 0.05, 12, 12]} />
@@ -158,8 +160,7 @@ const Knob = ({
         anchorX="center"
         anchorY="middle"
       />
-    </group>
-  );
-};
+    </group>  );
+});
 
 export default Knob;

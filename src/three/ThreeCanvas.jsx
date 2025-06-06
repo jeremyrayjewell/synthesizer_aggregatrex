@@ -4,6 +4,9 @@ import { Environment, Html } from '@react-three/drei';
 import SceneManager from './SceneManager';
 import ZoomControls from '../components/ZoomControls';
 import CameraAnimation from '../components/CameraAnimation';
+import DynamicLighting from '../components/DynamicLighting';
+import NoteReactiveLights from '../components/NoteReactiveLights';
+import SceneBackground from '../components/SceneBackground';
 
 const LoadingScreen = () => (
   <Html center>
@@ -24,9 +27,10 @@ const CanvasContent = ({ onNoteOn, onNoteOff, activeNotes, children }) => {
   return (
     <group>
       <color attach="background" args={['#111']} />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 10, 5]} intensity={1} />
-      <Environment preset="studio" />
+      <fog attach="fog" args={['#111122', 10, 50]} />
+      <DynamicLighting />
+      <NoteReactiveLights activeNotes={activeNotes} />
+      <SceneBackground activeNotes={activeNotes} />
       <SceneManager
         onNoteOn={onNoteOn}
         onNoteOff={onNoteOff}
@@ -46,13 +50,18 @@ const ThreeCanvas = ({ children, onNoteOn, onNoteOff, activeNotes }) => {
   }, []);
   
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}>
-      <Canvas
+    <div style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}>      <Canvas
         camera={{
           fov: 45,
           near: 0.1,
           far: 1000,
           position: [0, 2, 20]
+        }}
+        shadows
+        gl={{ 
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance"
         }}
       >
         <Suspense fallback={<LoadingScreen />}>

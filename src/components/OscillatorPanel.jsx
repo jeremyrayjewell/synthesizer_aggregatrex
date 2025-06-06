@@ -140,12 +140,15 @@ const OscillatorPanel = ({
     mix: DEFAULT_SUB_MIX,
     type: DEFAULT_SUB_WAVEFORM
   };
-
   return (
-    <group position={position}>
-      <mesh position={[0, 0, 0]}>
+    <group position={position} scale={[1.5, 1.5, 1.5]}>      <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
+        <meshStandardMaterial
+          color={color} 
+          roughness={0.15} 
+          metalness={0.8}
+          envMapIntensity={1.8}
+        />
       </mesh>
 
       <Text

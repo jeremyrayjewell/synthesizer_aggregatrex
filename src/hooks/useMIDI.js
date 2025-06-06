@@ -9,6 +9,11 @@ export function useMIDI(onNoteOn, onNoteOff) {
   const lastActivityRef = useRef(Date.now());
   const panicModeRef = useRef(false);
   const noteStatesRef = useRef(new Map());
+  
+  // Performance optimization: adaptive batch processing
+  const highVelocityThresholdRef = useRef(10); // messages per 100ms
+  const lastMessageCountRef = useRef(0);
+  const lastCountCheckRef = useRef(Date.now());
 
   const clearAllNotes = useCallback(() => {
     console.log('MIDI Panic: Clearing all notes');
@@ -30,13 +35,17 @@ export function useMIDI(onNoteOn, onNoteOff) {
     }, 500);
     return true;
   }, [onNoteOff]);
-
   const processMessageBatch = useCallback(() => {
     if (processingRef.current || messageQueueRef.current.length === 0) return;
     processingRef.current = true;
     lastActivityRef.current = Date.now();
+    
     try {
-      const batch = messageQueueRef.current.splice(0, 10);
+      // Performance optimization: adaptive batch size based on queue length
+      const queueLength = messageQueueRef.current.length;
+      const batchSize = queueLength > 50 ? 20 : queueLength > 20 ? 15 : 10;
+      const batch = messageQueueRef.current.splice(0, batchSize);
+      
       batch.forEach(message => {
         const { status, note, velocity } = message;
         const command = status & 0xf0;
@@ -68,8 +77,11 @@ export function useMIDI(onNoteOn, onNoteOff) {
     } catch (e) {
       console.error('Error processing MIDI message batch:', e);
     }
+    
     if (messageQueueRef.current.length > 0) {
-      messageBatchTimerRef.current = setTimeout(processMessageBatch, 1);
+      // Performance optimization: dynamic timeout based on queue pressure
+      const timeout = messageQueueRef.current.length > 30 ? 0 : 1;
+      messageBatchTimerRef.current = setTimeout(processMessageBatch, timeout);
     }
     processingRef.current = false;
   }, [onNoteOn, onNoteOff, clearAllNotes]);

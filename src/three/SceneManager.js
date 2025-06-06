@@ -127,23 +127,9 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
               }}
             />
           </group>        </Panel>
-      </group>
-      
-      {/* Effects Panel */}
-      <group position={[0, -4.5, -2.5]}>
-        <EffectsPanel
-          effects={synthParams?.effects || {}}
-          onEffectChange={(updatedEffects) => {
-            setSynthParams((prevParams) => ({
-              ...prevParams,
-              effects: updatedEffects
-            }));
-          }}
-          position={[0, 0, 0]}
-          width={10}
-          height={3}
-          depth={0.3}
-        />
+      </group>        {/* Effects Panel */}
+      <group position={[8, 2, -2.5]}>
+        <EffectsPanel />
       </group>
       
       <group position={[0, -2, 0]}>

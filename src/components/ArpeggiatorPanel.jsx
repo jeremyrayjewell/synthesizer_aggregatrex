@@ -57,18 +57,17 @@ const ArpeggiatorPanel = () => {
   const velocityModeValue = () => {
     const index = ARP_VELOCITY_MODES.indexOf(arpeggiator.velocityMode);
     return index >= 0 ? index / (ARP_VELOCITY_MODES.length - 1) : 0;
-  };
-
-  return (
-    <group position={position}>
+  };  return (
+    <group position={position} scale={[1.5, 1.5, 1.5]}>
       <mesh>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial 
+        <meshStandardMaterial
           color="#220033"
-          roughness={0.6}
-          metalness={0.3}
+          roughness={0.15}
+          metalness={0.8}
           emissive="#220033"
-          emissiveIntensity={arpeggiator.enabled ? 0.2 : 0.05}
+          emissiveIntensity={arpeggiator.enabled ? 0.3 : 0.08}
+          envMapIntensity={1.5}
         />
       </mesh>
 

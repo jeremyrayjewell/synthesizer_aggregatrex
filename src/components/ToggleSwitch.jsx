@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-const ToggleSwitch = ({ 
+const ToggleSwitch = React.memo(({ 
   value = false, 
   onChange = () => {}, 
   size = 0.5,
@@ -11,10 +11,13 @@ const ToggleSwitch = ({
   position = [0, 0, 0],
   label = 'TOGGLE'
 }) => {
-  const handleClick = (event) => {
+  const handleClick = useCallback((event) => {
     event.stopPropagation();
     onChange(!value);
-  };
+  }, [onChange, value]);
+
+  const backgroundColor = useMemo(() => new THREE.Color(value ? onColor : offColor), [value, onColor, offColor]);
+  const emissiveColor = useMemo(() => new THREE.Color(value ? onColor : offColor), [value, onColor, offColor]);
 
   return (
     <group position={position}>
@@ -31,24 +34,25 @@ const ToggleSwitch = ({
           document.body.style.cursor = 'default';
         }}
       >
-        <boxGeometry args={[size * 1.2, size * 0.6, size * 0.15]} />
-        <meshStandardMaterial 
-          color={value ? onColor : offColor} 
-          roughness={0.3}
-          emissive={value ? onColor : offColor}
-          emissiveIntensity={value ? 0.2 : 0.05}
+        <boxGeometry args={[size * 1.2, size * 0.6, size * 0.15]} />        <meshStandardMaterial 
+          color={backgroundColor} 
+          roughness={0.1}
+          metalness={0.9}
+          emissive={emissiveColor}
+          emissiveIntensity={value ? 0.3 : 0.05}
+          envMapIntensity={2.5}
         />
       </mesh>
       
       {/* Switch indicator */}
       <mesh position={[value ? size * 0.25 : -size * 0.25, 0, size * 0.08]}>
-        <cylinderGeometry args={[size * 0.15, size * 0.15, size * 0.1, 16]} />
-        <meshStandardMaterial 
+        <cylinderGeometry args={[size * 0.15, size * 0.15, size * 0.1, 16]} />        <meshStandardMaterial 
           color="white" 
-          roughness={0.2}
-        />      </mesh>
-    </group>
+          roughness={0.1}
+          metalness={0.8}
+          envMapIntensity={2.0}
+        /></mesh>    </group>
   );
-};
+});
 
 export default ToggleSwitch;

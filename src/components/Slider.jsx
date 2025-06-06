@@ -1,8 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-const Slider = ({
+const Slider = React.memo(({
   value = 0.5,
   min = 0,
   max = 1,
@@ -24,13 +24,16 @@ const Slider = ({
   const hasInitialized = useRef(false);
   const blockPropUpdates = useRef(false);
   const lastUpdateTime = useRef(0);
-
-  const calculatePosition = (val) => {
+  const calculatePosition = useCallback((val) => {
     const normalized = (val - min) / (max - min);
     return orientation === 'horizontal'
       ? [normalized * length - length / 2, 0, 0.1]
       : [0, normalized * length - length / 2, 0.1];
-  };
+  }, [min, max, orientation, length]);
+
+  const baseColor = useMemo(() => new THREE.Color(color), [color]);
+  const trackColor = useMemo(() => baseColor.clone().multiplyScalar(0.5), [baseColor]);
+  const highlightColor = useMemo(() => baseColor.clone().addScalar(0.2), [baseColor]);
 
   useEffect(() => {
     if (!blockPropUpdates.current && handleRef.current) {
@@ -137,10 +140,11 @@ const Slider = ({
             ? [length, thickness, thickness / 2]
             : [thickness, length, thickness / 2]
           }
-        />
-        <meshStandardMaterial
-          color={new THREE.Color(color).multiplyScalar(0.5)}
-          roughness={0.7}
+        />        <meshStandardMaterial
+          color={trackColor}
+          roughness={0.3}
+          metalness={0.7}
+          envMapIntensity={1.8}
         />
       </mesh>
       <mesh
@@ -153,11 +157,11 @@ const Slider = ({
             ? [thickness * 1.5, thickness * 2, thickness]
             : [thickness * 2, thickness * 1.5, thickness]
           }
-        />
-        <meshStandardMaterial
-          color={isDragging ? new THREE.Color(color).addScalar(0.2) : color}
-          roughness={0.5}
-          metalness={0.3}
+        />        <meshStandardMaterial
+          color={isDragging ? highlightColor : baseColor}
+          roughness={0.2}
+          metalness={0.8}
+          envMapIntensity={2.2}
         />
       </mesh>
       <Text
@@ -193,8 +197,7 @@ const Slider = ({
       >
         {label}
       </Text>
-    </group>
-  );
-};
+    </group>  );
+});
 
 export default Slider;

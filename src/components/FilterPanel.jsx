@@ -31,10 +31,14 @@ const FilterPanel = ({
   const adjustedTopY = topThirdY + COMMON_SPACING.FILTER_TOP_ADJUSTMENT;
   const adjustedLowY = COMMON_SPACING.FILTER_LOW_ADJUSTMENT;
   return (
-    <group position={position}>
-      <mesh position={[0, 0, 0]}>
+    <group position={position}>      <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
+        <meshStandardMaterial 
+          color={color} 
+          roughness={0.15} 
+          metalness={0.8}
+          envMapIntensity={1.8}
+        />
       </mesh><Text
         position={[0, height / 2 - COMMON_SPACING.TITLE_OFFSET, textZ]}
         fontSize={0.1}
