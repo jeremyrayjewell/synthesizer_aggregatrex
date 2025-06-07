@@ -1,17 +1,18 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { COMMON_SPACING } from '../constants/spacing';
 
 const Slider = React.memo(({
   value = 0.5,
   min = 0,
   max = 1,
   onChange = () => {},
-  length = 2,
+  length = COMMON_SPACING.SLIDER_LENGTH,
   label = 'Slider',
   color = '#61dafb',
   valueFormatter = (val) => val.toFixed(2),
-  thickness = 0.1,
+  thickness = COMMON_SPACING.SLIDER_THICKNESS,
   orientation = 'horizontal',
   labelOffset = 0,
   valueOffset = 0
@@ -170,7 +171,7 @@ const Slider = React.memo(({
           ? [-length / 2 + thickness * 2, -thickness * 1.8 + valueOffset, 0.1]
           : [thickness * 1.2 + valueOffset, -thickness * 2, 0.1]
         }
-        fontSize={0.08}
+        fontSize={COMMON_SPACING.VALUE_FONT_SIZE}
         color="white"
         fontWeight="bold"
         rotation={orientation === 'horizontal'
@@ -185,7 +186,7 @@ const Slider = React.memo(({
           ? [thickness * 6, -thickness * 1.8 + labelOffset, 0.1]
           : [thickness * 1.2 + labelOffset, -thickness * 8, 0.1]
         }
-        fontSize={0.055}
+        fontSize={COMMON_SPACING.LABEL_FONT_SIZE}
         color="white"
         fontWeight="bold"
         rotation={orientation === 'horizontal'

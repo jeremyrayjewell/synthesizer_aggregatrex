@@ -34,24 +34,28 @@ export function useMIDI(onNoteOn, onNoteOff) {
       panicModeRef.current = false;
     }, 500);
     return true;
-  }, [onNoteOff]);
-  const processMessageBatch = useCallback(() => {
+  }, [onNoteOff]);  const processMessageBatch = useCallback(() => {
     if (processingRef.current || messageQueueRef.current.length === 0) return;
     processingRef.current = true;
     lastActivityRef.current = Date.now();
     
     try {
-      // Performance optimization: adaptive batch size based on queue length
+      // More aggressive performance optimization: larger batches for rapid input
       const queueLength = messageQueueRef.current.length;
-      const batchSize = queueLength > 50 ? 20 : queueLength > 20 ? 15 : 10;
+      const batchSize = queueLength > 100 ? 30 : queueLength > 50 ? 20 : queueLength > 20 ? 15 : 10;
       const batch = messageQueueRef.current.splice(0, batchSize);
+      
+      // Drop older messages if queue is backing up severely
+      if (messageQueueRef.current.length > 100) {
+        console.warn("MIDI queue backup detected, dropping old messages");
+        messageQueueRef.current.splice(0, messageQueueRef.current.length - 50);
+      }
       
       batch.forEach(message => {
         const { status, note, velocity } = message;
         const command = status & 0xf0;
         const channel = status & 0x0f;
-        if (panicModeRef.current && command !== 0xB0) return;
-        try {
+        if (panicModeRef.current && command !== 0xB0) return;try {
           if (command === 0x90 && velocity > 0) {
             const now = Date.now();
             noteStatesRef.current.set(note, { active: true, timestamp: now, velocity });
@@ -85,17 +89,35 @@ export function useMIDI(onNoteOn, onNoteOff) {
     }
     processingRef.current = false;
   }, [onNoteOn, onNoteOff, clearAllNotes]);
-
   const queueMIDIMessage = useCallback((message) => {
     const [status, note, velocity] = message.data;
+    const command = status & 0xf0;
+    
+    // Immediate processing for note-off messages to prevent hanging notes
+    if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+      const noteState = noteStatesRef.current.get(note);
+      if (noteState) {
+        noteState.active = false;
+        noteStatesRef.current.set(note, noteState);
+      }
+      activeNotesRef.current.delete(note);
+      midiDebugger.noteOff(note);
+      onNoteOff(note);
+      return;
+    }
+    
     messageQueueRef.current.push({ status, note, velocity });
-    if (!processingRef.current && !messageBatchTimerRef.current) {
+    
+    // Immediate processing for note-on if queue is small
+    if (messageQueueRef.current.length <= 5 && !processingRef.current) {
+      processMessageBatch();
+    } else if (!processingRef.current && !messageBatchTimerRef.current) {
       messageBatchTimerRef.current = setTimeout(() => {
         messageBatchTimerRef.current = null;
         processMessageBatch();
       }, 0);
     }
-  }, [processMessageBatch]);
+  }, [processMessageBatch, onNoteOff]);
 
   useEffect(() => {
     let midiAccess = null;

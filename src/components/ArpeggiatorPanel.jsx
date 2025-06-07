@@ -3,6 +3,7 @@ import { Text } from '@react-three/drei';
 import Knob from './Knob';
 import ToggleSwitch from './ToggleSwitch';
 import { useSynthContext } from '../hooks/useSynth';
+import { COMMON_SPACING } from '../constants/spacing';
 import {
   ARP_RATE_MIN, ARP_RATE_MAX,
   ARP_PATTERNS,
@@ -15,8 +16,8 @@ import {
 
 const ArpeggiatorPanel = () => {
   // Internal component dimensions and positioning like other panels
-  const position = [2, -1.8, 0.3];
-  const width = 3;
+  const position = [2, -0.2, 0.1];
+  const width = 1.5;
   const height = 2;
   const depth = 0.2;
   const { synthParams, setSynthParams, synth } = useSynthContext();
@@ -24,7 +25,7 @@ const ArpeggiatorPanel = () => {
 
   const arpeggiator = synthParams.arpeggiator;
   const knobZ = depth + 0.01;
-  const knobSize = 0.5;
+  const knobSize = COMMON_SPACING.MEDIUM_KNOB_SIZE;
   const rowHeight = height / 3.6;
   const colWidth = width / 4;
 
@@ -69,11 +70,9 @@ const ArpeggiatorPanel = () => {
           emissiveIntensity={arpeggiator.enabled ? 0.3 : 0.08}
           envMapIntensity={1.5}
         />
-      </mesh>
-
-      <Text position={[0, height / 1.75 - 0.25, knobZ]} fontSize={0.09} color="#ffffff" anchorX="center" anchorY="middle">
+      </mesh>      <Text position={[0, height / 1.75 - 0.25, knobZ]} fontSize={COMMON_SPACING.TITLE_FONT_SIZE * 0.8} color="#ffffff" anchorX="center" anchorY="middle">
         ARPEGGIATOR
-      </Text>      <group position={positions.onOff}>
+      </Text><group position={positions.onOff}>
         <ToggleSwitch
           value={arpeggiator.enabled}
           onChange={(enabled) => {
@@ -100,12 +99,11 @@ const ArpeggiatorPanel = () => {
                 setSynthParams(prev => ({ ...prev, arpeggiator: { ...prev.arpeggiator, enabled: false } }));
               }
             } else {
-              setSynthParams(prev => ({ ...prev, arpeggiator: { ...prev.arpeggiator, enabled } }));
-            }
+              setSynthParams(prev => ({ ...prev, arpeggiator: { ...prev.arpeggiator, enabled } }));            }
           }}
-          size={0.2}
+          size={COMMON_SPACING.MEDIUM_TOGGLE_SIZE}
           onColor="#e91e63"
-          offColor="#666666"        />
+          offColor="#666666"/>
         <Text position={[0, -0.18, 0]} fontSize={0.08} color="white" anchorX="center" anchorY="middle">
           ON/OFF
         </Text>
@@ -236,12 +234,11 @@ const ArpeggiatorPanel = () => {
       </group>      <group position={positions.hold}>
         <ToggleSwitch
           value={arpeggiator.holdMode}
-          onChange={(holdMode) => {
-            setSynthParams(prev => ({ ...prev, arpeggiator: { ...prev.arpeggiator, holdMode } }));
+          onChange={(holdMode) => {            setSynthParams(prev => ({ ...prev, arpeggiator: { ...prev.arpeggiator, holdMode } }));
           }}
-          size={0.2}
+          size={COMMON_SPACING.MEDIUM_TOGGLE_SIZE}
           onColor="#e91e63"
-          offColor="#666666"        />
+          offColor="#666666"/>
         <Text position={[0, -0.18, 0]} fontSize={0.08} color="white" anchorX="center" anchorY="middle">
           HOLD
         </Text>

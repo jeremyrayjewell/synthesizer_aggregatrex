@@ -8,12 +8,12 @@ import { createPositioning, COMMON_SPACING } from '../constants/spacing';
 
 const ADSREnvelopePanel = () => {
   // Internal component dimensions and styling
-  const width = 2;
-  const height = 3.5;
+  const width = 1.5;
+  const height = 2.5;
   const depth = 0.2;
   const color = '#333333';
   const sliderColor = '#8bc34a';
-  const position = [4.7, -1.1, 0.1];
+  const position = [4.7, 0.1, 0.1];
   const { synthParams, setSynthParams, synth } = useSynthContext();
   const { attack, decay, sustain, release } = synthParams.envelope;
   const formatTimeMs = (seconds) => {
@@ -25,8 +25,9 @@ const ADSREnvelopePanel = () => {
   const formatSustain = (value) => `${Math.round(value * 100)}%`;  // Create standardized positioning
   const { leftFifthX, bottomY, sliderZ, textZ } = createPositioning(width, height, depth);
   
-  const sliderThickness = COMMON_SPACING.SLIDER_THICKNESS;
-  const sliderLength = COMMON_SPACING.SLIDER_LENGTH;
+  // Make child elements smaller
+  const sliderThickness = COMMON_SPACING.SLIDER_THICKNESS * 0.8;
+  const sliderLength = COMMON_SPACING.SLIDER_LENGTH * 0.7;
   const sliderSpacing = COMMON_SPACING.SLIDER_SPACING;
   const baseSliderY = bottomY + COMMON_SPACING.ADSR_SLIDER_Y_ADJUSTMENT;
 
@@ -188,7 +189,7 @@ const ADSREnvelopePanel = () => {
   const decayPosition = timeToSliderPosition(decay, 3000);
   const sustainPosition = sustain;
   const releasePosition = timeToSliderPosition(release, 5000);  return (
-    <group position={position} scale={[1.5, 1.5, 1.5]}>      <mesh position={[0, 0, 0]}>
+    <group position={position} scale={[1.2, 1.2, 1.2]}>      <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial 
           color={color} 
@@ -196,19 +197,17 @@ const ADSREnvelopePanel = () => {
           metalness={0.8}
           envMapIntensity={1.8}
         />
-      </mesh>
-
-      <Text
+      </mesh>      <Text
         position={[0, height / 2 - COMMON_SPACING.TITLE_OFFSET, textZ]}
-        fontSize={0.1}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE * 0.8}
         color="white"
         anchorX="center"
         anchorY="middle"
       >
         ENVELOPE
-      </Text>      {/* Wider and centered visualizer */}
-      <mesh position={[0, height / 2 - 1, depth / 2 + 0.01]}>
-        <planeGeometry args={[width * 0.9, 1]} />
+      </Text>{/* Wider and centered visualizer */}
+      <mesh position={[0, height / 2 - 0.8, depth / 2 + 0.01]}>
+        <planeGeometry args={[width * 0.7, 0.7]} />
         <meshBasicMaterial
           map={envelopeTextureRef.current || drawADSRCurve()}
           transparent

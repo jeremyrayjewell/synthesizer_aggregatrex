@@ -9,10 +9,9 @@ const FilterPanel = ({
   filterType = 'lowpass',
   onFilterTypeChange = () => {},
   filterFreq = 2000,
-  onFilterFreqChange = () => {},
-  filterQ = 1,
+  onFilterFreqChange = () => {},  filterQ = 1,
   onFilterQChange = () => {},
-  position = [-5.25, -2.25, 0.1],
+  position = [-6, -0.1, 0.1],
   width = 1.25,
   height = 1.2,
   depth = 0.2,
@@ -29,9 +28,8 @@ const FilterPanel = ({
   // Create standardized positioning
   const { topThirdY, bottomY, leftX, rightX, centerX, knobZ, sliderZ, textZ } = createPositioning(width, height, depth);
   const adjustedTopY = topThirdY + COMMON_SPACING.FILTER_TOP_ADJUSTMENT;
-  const adjustedLowY = COMMON_SPACING.FILTER_LOW_ADJUSTMENT;
-  return (
-    <group position={position}>      <mesh position={[0, 0, 0]}>
+  const adjustedLowY = COMMON_SPACING.FILTER_LOW_ADJUSTMENT;  return (
+    <group position={position} scale={[1.5, 1.5, 1.5]}>      <mesh position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial 
           color={color} 
@@ -39,16 +37,15 @@ const FilterPanel = ({
           metalness={0.8}
           envMapIntensity={1.8}
         />
-      </mesh><Text
+      </mesh>      <Text
         position={[0, height / 2 - COMMON_SPACING.TITLE_OFFSET, textZ]}
-        fontSize={0.1}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE * 0.8}
         color="white"
         anchorX="center"
         anchorY="middle"
       >
         FILTER
-      </Text>      <group position={[leftX, adjustedTopY, knobZ]}>
-        <Knob
+      </Text><group position={[leftX, adjustedTopY, knobZ]}>        <Knob
           size={COMMON_SPACING.LARGE_KNOB_SIZE}
           value={getFilterTypeValue()}
           min={0}
@@ -77,8 +74,7 @@ const FilterPanel = ({
                    val < 0.78 ? 'HIGH' : 'BAND';
           }}
         />
-      </group>      <group position={[rightX, adjustedTopY, knobZ]}>
-        <Knob
+      </group>      <group position={[rightX, adjustedTopY, knobZ]}>        <Knob
           size={COMMON_SPACING.LARGE_KNOB_SIZE}
           value={getFilterQValue()}
           min={0}

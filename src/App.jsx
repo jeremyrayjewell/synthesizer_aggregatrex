@@ -9,7 +9,6 @@ const SynthController = () => {
   const synth = useSynth();
   const [activeNotes, setActiveNotes] = useState(new Set());
   const midiActivityRef = useRef({ count: 0, lastTime: Date.now() });
-
   const handleNoteOn = useCallback((note, velocity) => {
     try {
       const now = Date.now();
@@ -17,8 +16,23 @@ const SynthController = () => {
       midiActivityRef.current.count++;
       midiActivityRef.current.lastTime = now;
 
-      if (timeDiff < 10 && midiActivityRef.current.count > 10) {
+      // Enhanced performance monitoring
+      if (timeDiff < 5 && midiActivityRef.current.count > 20) {
+        console.warn(`Extreme MIDI input detected: ${midiActivityRef.current.count} messages in ${timeDiff}ms - activating emergency throttling`);
+        // Skip processing every other note during extreme load
+        if (midiActivityRef.current.count % 2 === 0) {
+          return;
+        }
+      } else if (timeDiff < 10 && midiActivityRef.current.count > 10) {
         console.log(`Rapid MIDI input detected: ${midiActivityRef.current.count} messages in ${timeDiff}ms`);
+      }
+
+      // Ensure audio context is running before processing
+      if (synth && synth.audioContext && synth.audioContext.state !== 'running') {
+        console.log("Audio context not running, attempting resume before note processing");
+        synth.audioContext.resume().catch(e => {
+          console.error("Failed to resume audio context:", e);
+        });
       }
 
       setTimeout(() => {
@@ -64,18 +78,29 @@ const SynthController = () => {
     } catch (e) {
       console.error("Error in clearAllNotes:", e);
     }
-  }, [synth]);
-
-  const { clearAllNotes: midiPanic } = useMIDI(handleNoteOn, handleNoteOff);
+  }, [synth]);  const { clearAllNotes: midiPanic } = useMIDI(handleNoteOn, handleNoteOff);
   useQwertyInput(handleNoteOn, handleNoteOff);
-
   useEffect(() => {
-    const resumeAudioContext = () => {
+    const resumeAudioContext = async () => {
       if (synth && synth.audioContext && synth.audioContext.state !== 'running') {
         console.log("Resuming audio context on user interaction");
-        synth.audioContext.resume().catch(e => {
+        try {
+          await synth.audioContext.resume();
+          console.log("Audio context resumed successfully");
+        } catch (e) {
           console.error("Error resuming audio context:", e);
-        });
+        }
+      }
+    };
+
+    // More aggressive audio context resume for better MIDI responsiveness
+    const handleFirstInteraction = async (event) => {
+      await resumeAudioContext();
+      // Remove listeners after first successful resume
+      if (synth && synth.audioContext && synth.audioContext.state === 'running') {
+        window.removeEventListener('mousedown', handleFirstInteraction);
+        window.removeEventListener('touchstart', handleFirstInteraction);
+        window.removeEventListener('keydown', handleFirstInteraction);
       }
     };
 
@@ -110,6 +135,12 @@ const SynthController = () => {
       clearAllNotes();
     };
 
+    // Set up listeners for first interaction
+    window.addEventListener('mousedown', handleFirstInteraction);
+    window.addEventListener('touchstart', handleFirstInteraction);
+    window.addEventListener('keydown', handleFirstInteraction);
+    
+    // Keep the original listeners for ongoing functionality
     window.addEventListener('mousedown', resumeAudioContext);
     window.addEventListener('touchstart', resumeAudioContext);
     window.addEventListener('keydown', handleKeyDown);
@@ -118,6 +149,9 @@ const SynthController = () => {
     const safetyInterval = setupSafetyChecks();
 
     return () => {
+      window.removeEventListener('mousedown', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
       window.removeEventListener('mousedown', resumeAudioContext);
       window.removeEventListener('touchstart', resumeAudioContext);
       window.removeEventListener('keydown', handleKeyDown);

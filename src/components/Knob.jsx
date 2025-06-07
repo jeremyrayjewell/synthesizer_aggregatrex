@@ -1,13 +1,14 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { COMMON_SPACING } from '../constants/spacing';
 
 const Knob = React.memo(({
   value = 0,
   min = 0,
   max = 1,
   onChange = () => {},
-  size = 1,
+  size = COMMON_SPACING.MEDIUM_KNOB_SIZE,
   label = 'Knob',
   color = '#61dafb',
   valueFormatter = (val) => val.toFixed(2)
@@ -140,10 +141,9 @@ const Knob = React.memo(({
             roughness={0.3}
           />
         </mesh>
-      </mesh>
-      <Text
-        position={[0, -size * 0.4, 0]}
-        fontSize={0.06}
+      </mesh>      <Text
+        position={[0, size * COMMON_SPACING.LABEL_Y_OFFSET, 0]}
+        fontSize={COMMON_SPACING.LABEL_FONT_SIZE}
         color="white"
         fontWeight="bold"
         anchorX="center"
@@ -153,8 +153,8 @@ const Knob = React.memo(({
       </Text>
       <Text
         ref={displayTextRef}
-        position={[0, size * 0.4, 0]}
-        fontSize={0.08}
+        position={[0, size * COMMON_SPACING.VALUE_Y_OFFSET, 0]}
+        fontSize={COMMON_SPACING.VALUE_FONT_SIZE}
         color="white"
         fontWeight="bold"
         anchorX="center"

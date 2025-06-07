@@ -1,19 +1,37 @@
-
-class MIDIVoiceManager {  constructor(audioContext) {
+class MIDIVoiceManager {
+  constructor(audioContext) {
     this.audioContext = audioContext;
     this.activeVoices = new Map();
     this.pendingReleases = new Map();
     this.scheduledVoices = new Map();
     this.releasedVoices = new Set();
     this.voiceCount = 0;
-    this.maxVoices = 32;
+    this.maxVoices = 16; // Further reduced for high-speed sequences
     this.lastNoteOnTime = new Map();
-    this.CLEANUP_INTERVAL = 2000;
+    this.CLEANUP_INTERVAL = 500; // Much more frequent cleanup
     this.cleanupInterval = setInterval(() => this.performCleanup(), this.CLEANUP_INTERVAL);
     
     // Add special tracking for arpeggiator voices
     this.arpeggiatedNotes = new Set();
     this.arpeggiatedVoices = new Set();
+    
+    // Enhanced rapid input protection
+    this.rapidInputCount = 0;
+    this.rapidInputWindow = 50; // Shorter window for tighter control
+    this.rapidInputThreshold = 4; // Much lower threshold - max 4 notes per 50ms
+    this.lastInputTime = 0;
+    this.inputRateLimited = false;
+    
+    // High-speed sequencer protection
+    this.sequencerModeActive = false;
+    this.sequencerNoteCount = 0;
+    this.sequencerTimeWindow = 1000; // 1 second window
+    this.sequencerThreshold = 20; // If more than 20 notes in 1 second, activate sequencer mode
+    this.sequencerStartTime = 0;
+    
+    // Emergency brake system
+    this.emergencyBrakeActive = false;
+    this.emergencyThreshold = 50; // Emergency if more than 50 notes in 1 second
   }
 
   createVoice(note, velocity, voiceFactory) {
@@ -56,9 +74,81 @@ class MIDIVoiceManager {  constructor(audioContext) {
       timeout: scheduleTimeout
     });
     return scheduleId;
-  }
-
-  noteOn(note, velocity, voiceFactory) {
+  }  noteOn(note, velocity, voiceFactory) {
+    // Quick exit if audio context is not running
+    if (this.audioContext.state !== 'running') {
+      return false;
+    }
+    
+    const now = performance.now();
+    
+    // Enhanced rapid input and sequencer detection
+    if (now - this.lastInputTime < this.rapidInputWindow) {
+      this.rapidInputCount++;
+    } else {
+      this.rapidInputCount = 1;
+      this.inputRateLimited = false;
+    }
+    this.lastInputTime = now;
+    
+    // Sequencer mode detection
+    if (!this.sequencerModeActive) {
+      if (now - this.sequencerStartTime > this.sequencerTimeWindow) {
+        this.sequencerNoteCount = 1;
+        this.sequencerStartTime = now;
+      } else {
+        this.sequencerNoteCount++;
+        if (this.sequencerNoteCount > this.sequencerThreshold) {
+          console.warn("High-speed sequencer detected - activating performance mode");
+          this.sequencerModeActive = true;
+          this.maxVoices = 8; // Drastically reduce voices for sequencer mode
+        }
+      }
+    }
+    
+    // Emergency brake
+    if (this.sequencerNoteCount > this.emergencyThreshold) {
+      if (!this.emergencyBrakeActive) {
+        console.error("EMERGENCY BRAKE: Excessive MIDI input detected - dropping 90% of notes");
+        this.emergencyBrakeActive = true;
+        this.allNotesOff(() => {}); // Force silence
+      }
+      // Drop 90% of notes in emergency mode
+      if (Math.random() > 0.1) {
+        return false;
+      }
+    }
+    
+    // Rate limiting based on mode
+    const threshold = this.sequencerModeActive ? 2 : this.rapidInputThreshold;
+    if (this.rapidInputCount > threshold) {
+      if (!this.inputRateLimited) {
+        console.warn(`Rate limiting MIDI input (mode: ${this.sequencerModeActive ? 'sequencer' : 'normal'})`);
+        this.inputRateLimited = true;
+      }
+      // In sequencer mode, drop more aggressively
+      if (this.sequencerModeActive && Math.random() > 0.3) {
+        return false;
+      } else if (!this.sequencerModeActive) {
+        return false;
+      }
+    }
+    
+    // Reset emergency brake if things calm down
+    if (this.emergencyBrakeActive && now - this.sequencerStartTime > 2000 && this.sequencerNoteCount < 10) {
+      console.log("Emergency brake deactivated");
+      this.emergencyBrakeActive = false;
+      this.sequencerModeActive = false;
+      this.maxVoices = 16;
+    }
+    
+    // Ultra-aggressive voice stealing in sequencer mode
+    const voiceThreshold = this.sequencerModeActive ? 0.5 : 0.7;
+    if (this.voiceCount >= this.maxVoices * voiceThreshold) {
+      this.emergencyVoicePruning();
+    }
+    
+    // Kill existing note immediately in high-speed mode
     if (this.activeVoices.has(note)) {
       const voices = this.activeVoices.get(note);
       if (this.pendingReleases.has(note)) {
@@ -70,7 +160,7 @@ class MIDIVoiceManager {  constructor(audioContext) {
         try {
           this.releasedVoices.add(voice);
           if (typeof voice.stop === 'function') {
-            voice.stop(true);
+            voice.stop(true); // Immediate stop
           }
         } catch (e) {
           console.error(`Error stopping voice for note ${note}:`, e);
@@ -78,9 +168,11 @@ class MIDIVoiceManager {  constructor(audioContext) {
       });
       this.activeVoices.set(note, []);
     }
+    
     if (this.voiceCount >= this.maxVoices) {
       this.stealOldestVoice();
     }
+    
     return this.createVoice(note, velocity, voiceFactory);
   }
 
@@ -227,6 +319,73 @@ class MIDIVoiceManager {  constructor(audioContext) {
     }    if (cleanupCount > 0) {
       console.log(`Cleaned up ${cleanupCount} voices, current voice count: ${this.voiceCount}`);
     }
+  }
+
+  performAggressiveCleanup() {
+    console.log('Performing aggressive cleanup for sequencer mode');
+    const now = this.audioContext.currentTime;
+    let cleanupCount = 0;
+    
+    // More aggressive cleanup of released voices
+    for (const voice of this.releasedVoices) {
+      if (voice.releaseStartTime && (now - voice.releaseStartTime > 1)) { // Shorter timeout
+        this.releasedVoices.delete(voice);
+        cleanupCount++;
+      }
+    }
+    
+    // Force cleanup voices that aren't playing
+    for (const [note, voices] of this.activeVoices.entries()) {
+      for (let i = voices.length - 1; i >= 0; i--) {
+        const voice = voices[i];
+        if (voice && voice.isStopped) {
+          voices.splice(i, 1);
+          this.voiceCount--;
+          cleanupCount++;
+        }
+      }
+    }
+    
+    console.log(`Aggressive cleanup: removed ${cleanupCount} voices`);
+  }
+  
+  performEmergencyCleanup() {
+    console.log('🚨 Emergency cleanup activated');
+    
+    // Force stop 50% of active voices
+    const allVoices = [];
+    for (const [note, voices] of this.activeVoices.entries()) {
+      for (const voice of voices) {
+        if (voice && !voice.isStopped) {
+          allVoices.push({ note, voice });
+        }
+      }
+    }
+    
+    const voicesToStop = Math.floor(allVoices.length * 0.5);
+    for (let i = 0; i < voicesToStop; i++) {
+      const { note, voice } = allVoices[i];
+      try {
+        if (typeof voice.forceKill === 'function') {
+          voice.forceKill();
+        } else if (typeof voice.stop === 'function') {
+          voice.stop(true);
+        }
+        
+        const voicesForNote = this.activeVoices.get(note);
+        if (voicesForNote) {
+          const index = voicesForNote.indexOf(voice);
+          if (index !== -1) {
+            voicesForNote.splice(index, 1);
+            this.voiceCount--;
+          }
+        }
+      } catch (e) {
+        console.error('Error in emergency cleanup:', e);
+      }
+    }
+    
+    console.log(`Emergency cleanup: force stopped ${voicesToStop} voices`);
   }
 
   dispose() {

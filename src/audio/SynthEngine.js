@@ -2,6 +2,7 @@ import Voice from './Voice';
 import MIDIVoiceManager from './MIDIVoiceManager';
 import Arpeggiator from './Arpeggiator';
 import EffectChain from './EffectChain';
+import audioContextManager from '../utils/audioContextManager';
 import { 
   DEFAULT_MASTER_VOLUME, 
   DEFAULT_DETUNE, 
@@ -21,64 +22,84 @@ import {
 } from '../constants/synth';
 
 export default class SynthEngine {
-  constructor(audioContext = new (window.AudioContext || window.webkitAudioContext)()) {
-    this.audioContext = audioContext;
-    this.masterGain = this.audioContext.createGain();
-    this.masterGain.gain.value = DEFAULT_MASTER_VOLUME;
-    
-    // Create effect chain
-    this.effectChain = new EffectChain(this.audioContext);
-    
-    // Connect master gain through effect chain to destination
-    this.masterGain.connect(this.effectChain.input);
-    this.effectChain.output.connect(this.audioContext.destination);this.parameters = {
-      oscillator1Type: 'sawtooth',
-      oscillator1Detune: DEFAULT_DETUNE,
-      oscillator1Mix: 0.8,  // Increased from 0.5
-      oscillator1PulseWidth: DEFAULT_PULSE_WIDTH,
-      oscillator2Type: 'square',
-      oscillator2Detune: DEFAULT_DETUNE,
-      oscillator2Mix: 0.3,  // Reduced to make oscillator1 more prominent
-      oscillator2PulseWidth: DEFAULT_PULSE_WIDTH,
-      subOscillatorEnabled: DEFAULT_SUB_ENABLED,
-      subOscillatorType: DEFAULT_SUB_WAVEFORM,
-      subOscillatorMix: DEFAULT_SUB_MIX,
-      filterType: 'lowpass',
-      filterCutoff: 8000,  // Increased from 2000 for brighter sound
-      filterQ: 1,
-      attack: 0.01,
-      decay: 0.2,
-      sustain: 0.7,
-      release: 0.5,
-      delayTime: 0.3,
-      delayFeedback: 0.3,
-      delayMix: 0.2,
-      reverbSize: 0.5,
-      reverbMix: 0.2
-    };    this.voiceManager = new MIDIVoiceManager(this.audioContext);
-    this.arpeggiator = new Arpeggiator(this.audioContext, this.voiceManager);
-    this.cleanupInterval = setInterval(() => this.emergencyCleanupCheck(), 5000);
-    this.midiActivityCounter = 0;
-    this.midiActivityTimeout = null;
-    console.log("SynthEngine initialized with new MIDIVoiceManager");
-    
-    // Initialize arpeggiator with default settings
-    this.updateArpeggiator({
-      enabled: DEFAULT_ARP_ENABLED,
-      rate: DEFAULT_ARP_RATE,
-      pattern: DEFAULT_ARP_PATTERN,
-      octaves: DEFAULT_ARP_OCTAVES,
-      gate: DEFAULT_ARP_GATE,
-      swing: DEFAULT_ARP_SWING,
-      stepLength: DEFAULT_ARP_STEP_LENGTH,
-      velocityMode: DEFAULT_ARP_VELOCITY_MODE,
-      holdMode: DEFAULT_ARP_HOLD_MODE
-    });
+  constructor() {
+    this.isInitialized = false;
+    this.initPromise = this.initializeAudioContext();
+  }
+
+  async initializeAudioContext() {
+    try {
+      this.audioContext = await audioContextManager.createContext();
+      audioContextManager.setupUserActivationListeners();
+      
+      this.masterGain = this.audioContext.createGain();
+      this.masterGain.gain.value = DEFAULT_MASTER_VOLUME;
+      
+      // Create effect chain
+      this.effectChain = new EffectChain(this.audioContext);
+      // Connect master gain through effect chain to destination
+      this.masterGain.connect(this.effectChain.input);
+      this.effectChain.output.connect(this.audioContext.destination);
+
+      this.parameters = {
+        oscillator1Type: 'sawtooth',
+        oscillator1Detune: DEFAULT_DETUNE,
+        oscillator1Mix: 0.8,  // Increased from 0.5
+        oscillator1PulseWidth: DEFAULT_PULSE_WIDTH,
+        oscillator2Type: 'square',
+        oscillator2Detune: DEFAULT_DETUNE,
+        oscillator2Mix: 0.3,  // Reduced to make oscillator1 more prominent
+        oscillator2PulseWidth: DEFAULT_PULSE_WIDTH,
+        subOscillatorEnabled: DEFAULT_SUB_ENABLED,
+        subOscillatorType: DEFAULT_SUB_WAVEFORM,
+        subOscillatorMix: DEFAULT_SUB_MIX,
+        filterType: 'lowpass',
+        filterCutoff: 8000,  // Increased from 2000 for brighter sound
+        filterQ: 1,
+        attack: 0.01,
+        decay: 0.2,
+        sustain: 0.7,
+        release: 0.5,
+        delayTime: 0.3,
+        delayFeedback: 0.3,
+        delayMix: 0.2,
+        reverbSize: 0.5,
+        reverbMix: 0.2,
+        arpeggiatorEnabled: DEFAULT_ARP_ENABLED
+      };
+
+      this.voiceManager = new MIDIVoiceManager(this.audioContext);
+      this.arpeggiator = new Arpeggiator(this.audioContext, this.voiceManager);
+      this.cleanupInterval = setInterval(() => this.emergencyCleanupCheck(), 5000);
+      
+      console.log("SynthEngine initialized successfully");
+      
+      // Initialize arpeggiator with default settings
+      this.updateArpeggiator({
+        enabled: DEFAULT_ARP_ENABLED,
+        rate: DEFAULT_ARP_RATE,
+        pattern: DEFAULT_ARP_PATTERN,
+        octaves: DEFAULT_ARP_OCTAVES,
+        gate: DEFAULT_ARP_GATE,
+        swing: DEFAULT_ARP_SWING,
+        stepLength: DEFAULT_ARP_STEP_LENGTH,
+        velocityMode: DEFAULT_ARP_VELOCITY_MODE,
+        holdMode: DEFAULT_ARP_HOLD_MODE
+      });
+    } catch (error) {
+      console.error("Failed to initialize SynthEngine:", error);
+    }
   }
 
   createVoiceFactory(velocity) {
     return (note) => {
       try {
+        // Early exit if audio context is suspended
+        if (this.audioContext.state !== 'running') {
+          console.log("Audio context not running, skipping voice creation");
+          return null;
+        }
+        
         const currentGain = this.masterGain ? this.masterGain.gain.value : DEFAULT_MASTER_VOLUME;
         const voice = new Voice(this.audioContext, this.masterGain, {
           ...this.parameters,
@@ -92,35 +113,47 @@ export default class SynthEngine {
         return null;
       }
     };
-  }  noteOn(note, velocity = 127) {
-    this.midiActivityCounter++;
-    if (this.midiActivityTimeout) {
-      clearTimeout(this.midiActivityTimeout);
-    }
-    this.midiActivityTimeout = setTimeout(() => {
-      this.midiActivityCounter = 0;
-    }, 500);
+  }
 
+  noteOn(note, velocity = 127) {
+    // Simple and robust audio context handling
+    if (this.audioContext.state === 'suspended') {
+      console.log("Auto-resuming suspended audio context");
+      this.audioContext.resume().then(() => {
+        console.log("Audio context resumed, processing note");
+        this._performNoteOn(note, velocity);
+      }).catch(e => {
+        console.error("Failed to resume audio context:", e);
+      });
+      return;
+    }
+    
+    this._performNoteOn(note, velocity);
+  }
+
+  _performNoteOn(note, velocity = 127) {
+    // Skip if audio context is not running
+    if (this.audioContext.state !== 'running') {
+      console.warn("Audio context not running, note skipped");
+      return;
+    }
+    
     try {
       const voiceFactory = this.createVoiceFactory(velocity);
       
       // If arpeggiator is enabled, add the note to the arpeggiator
-      if (this.arpeggiator && this.arpeggiator.isEnabled) {
-        console.log(`Adding note ${note} to arpeggiator`);
-        this.arpeggiator.setVoiceFactory(voiceFactory);
-        // Mark the note as being controlled by the arpeggiator
-        this.voiceManager.markNoteAsArpeggiated(note);
-        this.arpeggiator.addNote(note, velocity / 127);
-      } else {
-        // Normal note playing
-        this.voiceManager.noteOn(note, velocity, voiceFactory);
+      if (this.parameters.arpeggiatorEnabled) {
+        this.arpeggiator.addNote(note, velocity);
+        return;
       }
-      return true;
+
+      // Direct voice creation for normal playback
+      return this.voiceManager.noteOn(note, velocity, voiceFactory);
     } catch (e) {
-      console.error(`Error in noteOn for note ${note}:`, e);
-      return false;
+      console.error("Error in _performNoteOn:", e);
     }
   }
+
   noteOff(note) {
     try {
       // If arpeggiator is enabled, release the note from the arpeggiator
@@ -141,6 +174,7 @@ export default class SynthEngine {
       return false;
     }
   }
+
   // Method to update arpeggiator settings
   updateArpeggiator(settings) {
     if (!this.arpeggiator) return;
@@ -165,15 +199,16 @@ export default class SynthEngine {
         if (typeof this.voiceManager.emergencyReleaseAll === 'function') {
           this.voiceManager.emergencyReleaseAll();
         }
-          // 3. Temporarily disconnect audio output for immediate silence
+        
+        // 3. Temporarily disconnect audio output for immediate silence
         if (this.masterGain) {
           this.masterGain.disconnect();
           
           // Reconnect after a brief moment of silence
           setTimeout(() => {
             try {
-              if (this.masterGain && this.audioContext) {
-                this.masterGain.connect(this.audioContext.destination);
+              if (this.masterGain && this.effectChain) {
+                this.masterGain.connect(this.effectChain.input);
                 console.log("Audio output reconnected after emergency silence");
               }
             } catch (e) {
@@ -188,7 +223,9 @@ export default class SynthEngine {
     
     // Now update the parameters
     this.arpeggiator.updateParameters(settings);
-  }allNotesOff() {
+  }
+
+  allNotesOff() {
     console.log("All notes off triggered in SynthEngine");
     try {
       // Always try to clean up the arpeggiator, regardless of enabled state
@@ -220,6 +257,7 @@ export default class SynthEngine {
       return false;
     }
   }
+
   emergencyCleanupCheck() {
     if (this.audioContext.state !== 'running') return;
     if (this.voiceManager.voiceCount > Math.floor(this.voiceManager.maxVoices * 0.75)) {
@@ -231,6 +269,7 @@ export default class SynthEngine {
       }
     }
   }
+
   setParam(param, value) {
     console.log('Setting synth param:', param, value);
     
@@ -346,9 +385,15 @@ export default class SynthEngine {
     this.parameters.sustain = sustain;
     this.parameters.release = release;
   }
+
   dispose() {
     clearInterval(this.cleanupInterval);
     this.allNotesOff();
+    
+    // Remove audio context state listener
+    if (this.audioContextStateHandler) {
+      this.audioContext.removeEventListener('statechange', this.audioContextStateHandler);
+    }
     
     // Dispose the arpeggiator if it exists
     if (this.arpeggiator) {
@@ -378,7 +423,7 @@ export default class SynthEngine {
     
     if (this.arpeggiator) {
       // First disconnect the main output to silence everything
-      const destination = this.masterGain.destination;
+      const destination = this.effectChain.input;
       this.masterGain.disconnect();
       
       // Call the arpeggiator's emergency stop

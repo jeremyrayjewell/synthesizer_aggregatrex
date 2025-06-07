@@ -5,7 +5,9 @@ import SceneManager from './SceneManager';
 import ZoomControls from '../components/ZoomControls';
 import CameraAnimation from '../components/CameraAnimation';
 import DynamicLighting from '../components/DynamicLighting';
+import AtmosphericLights from '../components/AtmosphericLights';
 import NoteReactiveLights from '../components/NoteReactiveLights';
+import UltraLighting from '../components/UltraLighting';
 import SceneBackground from '../components/SceneBackground';
 
 const LoadingScreen = () => (
@@ -27,8 +29,8 @@ const CanvasContent = ({ onNoteOn, onNoteOff, activeNotes, children }) => {
   return (
     <group>
       <color attach="background" args={['#111']} />
-      <fog attach="fog" args={['#111122', 10, 50]} />
-      <DynamicLighting />
+      <fog attach="fog" args={['#111122', 10, 50]} />      <DynamicLighting />
+      <AtmosphericLights />
       <NoteReactiveLights activeNotes={activeNotes} />
       <SceneBackground activeNotes={activeNotes} />
       <SceneManager
@@ -48,9 +50,9 @@ const ThreeCanvas = ({ children, onNoteOn, onNoteOff, activeNotes }) => {
     startTransition(() => {
     });
   }, []);
-  
-  return (
-    <div style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}>      <Canvas
+    return (
+    <div style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}>
+      <Canvas
         camera={{
           fov: 45,
           near: 0.1,

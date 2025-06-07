@@ -11,96 +11,119 @@ const AtmosphericLights = () => {
   React.useEffect(() => {
     atmosphericLights.current = Array(8).fill(null).map(() => React.createRef());
   }, []);
-
   const colorPalette = [
     '#ff3366', '#33ff66', '#6633ff', '#ffcc33',
-    '#33ccff', '#ff6633', '#cc33ff', '#66ff33'
+    '#33ccff', '#ff6633', '#cc33ff', '#66ff33',
+    '#ff0080', '#80ff00', '#0080ff', '#ff8000',
+    '#8000ff', '#00ff80', '#ff0088', '#88ff00'
   ];
-
   useFrame((state) => {
     const time = state.clock.elapsedTime;
     const masterVolume = synthParams?.master?.volume || 0;
-    const baseIntensity = Math.max(0.5, masterVolume * 2);
+    const baseIntensity = Math.max(1.0, masterVolume * 3.5);
 
     atmosphericLights.current.forEach((lightRef, index) => {
       if (!lightRef.current) return;
 
       const offset = index * Math.PI / 4;
-      const radius = 30 + Math.sin(time * 0.3 + offset) * 10;
-      const height = 15 + Math.cos(time * 0.4 + offset) * 8;
+      const radius = 35 + Math.sin(time * 0.4 + offset) * 15;
+      const height = 18 + Math.cos(time * 0.5 + offset) * 12;
       
-      // Smooth color transitions
-      const colorIndex = Math.floor((time * 0.2 + index * 0.5) % colorPalette.length);
+      // Enhanced color transitions with more vibrant cycling
+      const colorIndex = Math.floor((time * 0.3 + index * 0.8) % colorPalette.length);
       const nextColorIndex = (colorIndex + 1) % colorPalette.length;
-      const colorMix = ((time * 0.2 + index * 0.5) % 1);
+      const colorMix = ((time * 0.3 + index * 0.8) % 1);
       
       const currentColor = new THREE.Color(colorPalette[colorIndex])
         .lerp(new THREE.Color(colorPalette[nextColorIndex]), colorMix);
       
       lightRef.current.color = currentColor;
-      lightRef.current.intensity = baseIntensity * (0.8 + Math.sin(time * 2 + offset) * 0.4);
+      lightRef.current.intensity = baseIntensity * (1.2 + Math.sin(time * 2.5 + offset) * 0.8);
       
-      // Orbital movement
+      // Enhanced orbital movement with more dramatic patterns
       lightRef.current.position.set(
-        Math.cos(time * 0.3 + offset) * radius,
+        Math.cos(time * 0.4 + offset) * radius,
         height,
-        Math.sin(time * 0.3 + offset) * radius
+        Math.sin(time * 0.4 + offset) * radius
       );
     });
   });
 
   return (
-    <group>
-      {/* Large atmospheric point lights */}
+    <group>      {/* Enhanced atmospheric point lights with increased range */}
       {atmosphericLights.current.map((ref, index) => (
         <pointLight
           key={index}
           ref={ref}
-          decay={1.1}
-          distance={70}
+          decay={0.8}
+          distance={90}
           intensity={0}
         />
       ))}
-      
-      {/* Additional static atmospheric lights for base illumination */}
+        {/* Additional static atmospheric lights for enhanced base illumination - optimized */}
       <pointLight
-        position={[0, 25, 0]}
-        intensity={1}
+        position={[0, 30, 0]}
+        intensity={1.5} // Reduced intensity
         color="#ffffff"
-        decay={1.5}
+        decay={1.2}
         distance={100}
       />
       
       <pointLight
-        position={[-40, 20, -40]}
-        intensity={1.5}
+        position={[-50, 25, -50]}
+        intensity={2.0} // Reduced intensity
         color="#ff3399"
-        decay={1.3}
+        decay={1.0}
         distance={80}
       />
       
       <pointLight
-        position={[40, 20, 40]}
-        intensity={1.5}
+        position={[50, 25, 50]}
+        intensity={2.0} // Reduced intensity
         color="#3399ff"
-        decay={1.3}
+        decay={1.0}
         distance={80}
       />
       
       <pointLight
-        position={[40, 15, -40]}
-        intensity={1.2}
+        position={[50, 20, -50]}
+        intensity={1.8} // Reduced intensity
         color="#99ff33"
-        decay={1.3}
+        decay={1.0}
         distance={75}
       />
       
       <pointLight
-        position={[-40, 15, 40]}
-        intensity={1.2}
+        position={[-50, 20, 50]}
+        intensity={1.8} // Reduced intensity
         color="#ff9933"
-        decay={1.3}
+        decay={1.0}
         distance={75}
+      />
+
+      {/* High-intensity color accent lights - reduced count for performance */}
+      <pointLight
+        position={[0, 40, 0]}
+        intensity={2.5} // Reduced intensity
+        color="#ff00aa"
+        decay={1.1}
+        distance={120}
+      />
+      
+      <pointLight
+        position={[-70, 30, 0]}
+        intensity={1.5} // Reduced intensity
+        color="#00aaff"
+        decay={1.3}
+        distance={70}
+      />
+      
+      <pointLight
+        position={[70, 30, 0]}
+        intensity={1.5} // Reduced intensity
+        color="#aaff00"
+        decay={1.3}
+        distance={70}
       />
     </group>
   );

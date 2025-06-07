@@ -1,12 +1,13 @@
 import React from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { COMMON_SPACING } from '../constants/spacing';
 
 const WaveformSelector = ({ 
   value = 'sawtooth', 
   onChange = () => {}, 
   options = ['sine', 'square', 'sawtooth', 'triangle'],
-  size = 0.5,
+  size = COMMON_SPACING.WAVEFORM_SIZE,
   color = '#61dafb',
   position = [0, 0, 0],
   label = 'WAVEFORM'
@@ -57,7 +58,7 @@ const WaveformSelector = ({
       {/* Waveform text */}
       <Text
         position={[0, 0, size * 0.11]}
-        fontSize={size * 0.2}
+        fontSize={size * COMMON_SPACING.WAVEFORM_FONT_MULTIPLIER}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -69,7 +70,7 @@ const WaveformSelector = ({
       {/* Label */}
       <Text
         position={[0, -size * 0.8, 0]}
-        fontSize={size * 0.15}
+        fontSize={size * COMMON_SPACING.WAVEFORM_LABEL_MULTIPLIER}
         color="#cccccc"
         anchorX="center"
         anchorY="middle"

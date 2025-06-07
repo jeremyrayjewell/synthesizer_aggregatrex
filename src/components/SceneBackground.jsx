@@ -6,10 +6,9 @@ import { useSynthContext } from '../hooks/useSynth';
 const SceneBackground = React.memo(({ activeNotes = new Set() }) => {
   const meshRef = useRef();
   const { synthParams } = useSynthContext();
-  
-  // Performance optimization: track last update time
+    // Performance optimization: track last update time
   const lastUpdateRef = useRef(0);
-  const updateIntervalRef = useRef(32); // Update every ~32ms instead of every frame
+  const updateIntervalRef = useRef(50); // Update every ~50ms instead of every frame
   
   // Create custom shader material for dynamic background
   const shaderMaterial = useMemo(() => {

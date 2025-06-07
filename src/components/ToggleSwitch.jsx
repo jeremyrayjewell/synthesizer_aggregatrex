@@ -1,11 +1,12 @@
 import React, { useMemo, useCallback } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { COMMON_SPACING } from '../constants/spacing';
 
 const ToggleSwitch = React.memo(({ 
   value = false, 
   onChange = () => {}, 
-  size = 0.5,
+  size = COMMON_SPACING.MEDIUM_TOGGLE_SIZE,
   onColor = '#4caf50',
   offColor = '#666666',
   position = [0, 0, 0],

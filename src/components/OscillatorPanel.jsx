@@ -44,7 +44,7 @@ const WaveformSelector = ({ value, onChange, types, position, size = COMMON_SPAC
   );
 };
 
-const ToggleSwitch = ({ value, onChange, position, label, size = COMMON_SPACING.MEDIUM_KNOB_SIZE }) => {
+const ToggleSwitch = ({ value, onChange, position, label, size = COMMON_SPACING.LARGE_TOGGLE_SIZE }) => {
   return (
     <group position={position}>
       <mesh
@@ -66,7 +66,7 @@ const ToggleSwitch = ({ value, onChange, position, label, size = COMMON_SPACING.
           emissiveIntensity={0.3}
         />      </mesh>      <Text
         position={[0, -size * 0.45, 0.06]}
-        fontSize={0.06}
+        fontSize={COMMON_SPACING.LABEL_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -149,11 +149,9 @@ const OscillatorPanel = ({
           metalness={0.8}
           envMapIntensity={1.8}
         />
-      </mesh>
-
-      <Text
+      </mesh>      <Text
         position={[0, height / 2 - 0.06, depth / 2 + 0.01]}
-        fontSize={0.1}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE * 0.8}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -161,9 +159,8 @@ const OscillatorPanel = ({
         OSCILLATOR
       </Text>
 
-      <group position={[leftX, topY, knobZ]}>
-        <Knob
-          size={0.4}
+      <group position={[leftX, topY, knobZ]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={OSC_TYPES.indexOf(osc.type) / (OSC_TYPES.length - 1)}
           min={0}
           max={1}
@@ -177,9 +174,8 @@ const OscillatorPanel = ({
             osc.type.charAt(0).toUpperCase() + osc.type.slice(1, 3)
           }
         />
-      </group>      <group position={[centerX, topY, knobZ]}>
-        <Knob
-          size={0.4}
+      </group>      <group position={[centerX, topY, knobZ]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(osc.detune - DETUNE_MIN) / (DETUNE_MAX - DETUNE_MIN)}
           min={0}
           max={1}
@@ -198,9 +194,8 @@ const OscillatorPanel = ({
         />
       </group>
 
-      <group position={[rightX, topY, knobZ]}>
-        <Knob
-          size={0.4}
+      <group position={[rightX, topY, knobZ]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={osc.mix || 0.8}
           min={0}
           max={1}
@@ -214,14 +209,12 @@ const OscillatorPanel = ({
       <ToggleSwitch
         value={subOsc.enabled}
         onChange={(enabled) => updateSubOscillator({ enabled })}
-        position={[leftX, bottomY, knobZ]}
-        label="SUB OSC"
-        size={0.35}
+        position={[leftX, bottomY, knobZ]}        label="SUB OSC"
+        size={COMMON_SPACING.LARGE_TOGGLE_SIZE}
       />
 
-      <group position={[centerX, bottomY, knobZ]}>
-        <Knob
-          size={0.4}
+      <group position={[centerX, bottomY, knobZ]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={subOsc.mix}
           min={SUB_MIX_MIN}
           max={SUB_MIX_MAX}
@@ -232,9 +225,8 @@ const OscillatorPanel = ({
         />
       </group>
 
-      <group position={[rightX, bottomY, knobZ]}>
-        <Knob
-          size={0.4}
+      <group position={[rightX, bottomY, knobZ]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={SUB_OSC_TYPES.indexOf(subOsc.type) / (SUB_OSC_TYPES.length - 1)}
           min={0}
           max={1}

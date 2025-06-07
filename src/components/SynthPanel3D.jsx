@@ -5,6 +5,7 @@ import ADSREnvelopePanel from './ADSREnvelopePanel';
 import { useSynthContext } from '../hooks/useSynth';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { COMMON_SPACING } from '../constants/spacing';
 
 const PanicButton = ({ panic }) => {
   const [isPressed, setIsPressed] = useState(false);
@@ -171,10 +172,9 @@ const SynthPanel3D = () => {
                     synth.audioContext.currentTime
                   );
                 }
-              }}
-              label="MASTER VOL"
+              }}              label="MASTER VOL"
               color="#e91e63"
-              size={1.2}
+              size={COMMON_SPACING.MASTER_KNOB_SIZE}
               valueFormatter={(val) => `${Math.round(val * 100)}%`}
             />
             <Text

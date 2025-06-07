@@ -10,6 +10,7 @@ import ArpeggiatorPanel from '../components/ArpeggiatorPanel';
 import EffectsPanel from '../components/EffectsPanel';
 import { useSynthContext } from '../hooks/useSynth';
 import { DEFAULT_MASTER_VOLUME } from '../constants/synth';
+import { COMMON_SPACING } from '../constants/spacing';
 
 const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
   const { camera } = useThree();
@@ -37,18 +38,18 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
     if (onNoteOff) {
       onNoteOff(note);
     }
-  }, [onNoteOff]);
-
-  return (
-    <group ref={groupRef}>
-      <group position={[0, 2, -2.5]}>        <Panel
-          width={12}
-          height={6}
+  }, [onNoteOff]);  return (    <group ref={groupRef}>
+      {/* Primary Panel - slightly set back */}      <group position={[0, 1, -18.0]}>
+        <Panel
+          width={28}
+          height={4.5}
           depth={0.5}
           color="#1a1a1a"
           border={true}
           borderColor="#333333"
-          title="SYNTH CONTROLS"        >          <OscillatorPanel />
+          title="Aggregatrex 5000"
+        >
+          <OscillatorPanel />
           <ADSREnvelopePanel />
           <FilterPanel
             filterEnabled={filterEnabled}
@@ -95,10 +96,9 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
                 ...prevParams,          filter: { ...prevParams.filter, Q: newQ }              }));              if (synth && synth.setFilter && filterEnabled) {                synth.setFilter(filterType, filterFreq, newQ);          }            }}          />
             {/* Arpeggiator Panel */}
           <ArpeggiatorPanel />
-          
-          <group position={[0, 0, 0.1]}>
+            <group position={[0, 0, 0.1]}>
             <Knob
-              size={1.2}
+              size={COMMON_SPACING.MASTER_KNOB_SIZE}
               value={synthParams?.master?.volume ?? DEFAULT_MASTER_VOLUME}
               min={0}
               max={1}
@@ -126,13 +126,13 @@ const SceneManager = ({ activeNotes, onNoteOn, onNoteOff }) => {
                 return `${Math.round(val * 100)}%`;
               }}
             />
-          </group>        </Panel>
-      </group>        {/* Effects Panel */}
-      <group position={[8, 2, -2.5]}>
+          </group></Panel>      </group>      {/* Effects Panel - uniform distance */}
+      <group position={[12, 1, -17.5]}>
         <EffectsPanel />
       </group>
       
-      <group position={[0, -2, 0]}>
+      {/* Keyboard - uniform distance */}
+      <group position={[0, -2, -12.0]}>
         <Keyboard3D
           startNote={36}
           endNote={96}

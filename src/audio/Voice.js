@@ -18,58 +18,64 @@ export default class Voice {
       throw e;
     }
   }
-  createAudioNodes() {
+    createAudioNodes() {
     try {
+      // Essential nodes always created
       this.oscillator1 = this.audioContext.createOscillator();
-      this.oscillator2 = this.audioContext.createOscillator();
-      this.subOscillator = this.audioContext.createOscillator();
       this.oscMixer1 = this.audioContext.createGain();
-      this.oscMixer2 = this.audioContext.createGain();
-      this.subOscMixer = this.audioContext.createGain();
-    } catch (e) {
-      console.error("Failed to create oscillators:", e);
-      throw e;
-    }
-
-    try {
       this.gainNode = this.audioContext.createGain();
-    } catch (e) {
-      console.error("Failed to create gain node:", e);
-      throw e;
-    }
-
-    try {
       this.filter = this.audioContext.createBiquadFilter();
+      
+      // Conditionally create second oscillator
+      if (this.options.oscillator2Mix > 0.1) {
+        this.oscillator2 = this.audioContext.createOscillator();
+        this.oscMixer2 = this.audioContext.createGain();
+      }
+      
+      // Conditionally create sub-oscillator
+      if (this.options.subOscillatorEnabled && this.options.subOscillatorMix > 0.1) {
+        this.subOscillator = this.audioContext.createOscillator();
+        this.subOscMixer = this.audioContext.createGain();
+      }
+      
+      // Conditionally create effects (only if needed)
+      if (this.options.delayMix > 0.05) {
+        this.delayNode = this.audioContext.createDelay();
+        this.delayFeedback = this.audioContext.createGain();
+        this.delayMix = this.audioContext.createGain();
+      }
+      
+      if (this.options.reverbMix > 0.05) {
+        this.reverbNode = this.audioContext.createConvolver();
+        this.reverbMix = this.audioContext.createGain();
+      }
+      
     } catch (e) {
-      console.error("Failed to create filter:", e);
+      console.error("Failed to create audio nodes:", e);
       throw e;
     }
-
-    try {
-      this.delayNode = this.audioContext.createDelay();
-      this.delayFeedback = this.audioContext.createGain();
-      this.delayMix = this.audioContext.createGain();
-      this.reverbNode = this.audioContext.createConvolver();
-      this.reverbMix = this.audioContext.createGain();
-    } catch (e) {
-      console.error("Failed to create effects:", e);
-      throw e;
-    }
-  }
-  configureAudioNodes() {
+  }  configureAudioNodes() {
     const now = this.audioContext.currentTime;
 
-    try {      this.oscillator1.type = this.options.oscillator1Type || 'sawtooth';
-      this.oscillator2.type = this.options.oscillator2Type || 'square';
+    try {
+      // Configure oscillator 1 (always exists)
+      this.oscillator1.type = this.options.oscillator1Type || 'sawtooth';
       this.oscillator1.detune.value = this.options.oscillator1Detune || 0;
-      this.oscillator2.detune.value = this.options.oscillator2Detune || 0;
-      this.oscMixer1.gain.value = this.options.oscillator1Mix || 0.8;  // Increased
-      this.oscMixer2.gain.value = this.options.oscillator2Mix || 0.3;  // Reduced
+      this.oscMixer1.gain.value = this.options.oscillator1Mix || 0.8;
       
-      // Configure sub-oscillator
-      this.subOscillator.type = this.options.subOscillatorType || 'sine';
-      this.subOscMixer.gain.value = this.options.subOscillatorEnabled ? 
-        (this.options.subOscillatorMix || 0.3) : 0;
+      // Configure oscillator 2 (if exists)
+      if (this.oscillator2) {
+        this.oscillator2.type = this.options.oscillator2Type || 'square';
+        this.oscillator2.detune.value = this.options.oscillator2Detune || 0;
+        this.oscMixer2.gain.value = this.options.oscillator2Mix || 0.3;
+      }
+      
+      // Configure sub-oscillator (if exists)
+      if (this.subOscillator) {
+        this.subOscillator.type = this.options.subOscillatorType || 'sine';
+        this.subOscMixer.gain.value = this.options.subOscillatorEnabled ? 
+          (this.options.subOscillatorMix || 0.3) : 0;
+      }
     } catch (e) {
       console.error("Failed to configure oscillators:", e);
     }
@@ -90,56 +96,90 @@ export default class Voice {
     }
 
     try {
-      this.delayNode.delayTime.value = this.options.delayTime || 0.3;
-      this.delayFeedback.gain.value = this.options.delayFeedback || 0.3;
-      this.delayMix.gain.value = this.options.delayMix || 0.2;
-      this.reverbMix.gain.value = this.options.reverbMix || 0.2;
+      // Configure effects only if they exist
+      if (this.delayNode) {
+        this.delayNode.delayTime.value = this.options.delayTime || 0.3;
+        this.delayFeedback.gain.value = this.options.delayFeedback || 0.3;
+        this.delayMix.gain.value = this.options.delayMix || 0.2;
+      }
+      if (this.reverbMix) {
+        this.reverbMix.gain.value = this.options.reverbMix || 0.2;
+      }
     } catch (e) {
       console.error("Failed to configure effects:", e);
     }
-  }
-  connectAudioNodes() {
+  }  connectAudioNodes() {
     try {
+      // Connect oscillator 1 (always exists)
       this.oscillator1.connect(this.oscMixer1);
-      this.oscillator2.connect(this.oscMixer2);
-      this.subOscillator.connect(this.subOscMixer);
       this.oscMixer1.connect(this.filter);
-      this.oscMixer2.connect(this.filter);
-      this.subOscMixer.connect(this.filter);
+      
+      // Connect oscillator 2 (if exists)
+      if (this.oscillator2) {
+        this.oscillator2.connect(this.oscMixer2);
+        this.oscMixer2.connect(this.filter);
+      }
+      
+      // Connect sub-oscillator (if exists)
+      if (this.subOscillator) {
+        this.subOscillator.connect(this.subOscMixer);
+        this.subOscMixer.connect(this.filter);
+      }
+      
+      // Connect filter to gain
       this.filter.connect(this.gainNode);
 
+      // Set up effect routing (if effects exist)
       const drySignal = this.gainNode;
-      drySignal.connect(this.delayNode);
-      this.delayNode.connect(this.delayFeedback);
-      this.delayFeedback.connect(this.delayNode);
-      this.delayNode.connect(this.delayMix);
-      drySignal.connect(this.reverbNode);
-      this.reverbNode.connect(this.reverbMix);
+      
+      if (this.delayNode) {
+        drySignal.connect(this.delayNode);
+        this.delayNode.connect(this.delayFeedback);
+        this.delayFeedback.connect(this.delayNode);
+        this.delayNode.connect(this.delayMix);
+        this.delayMix.connect(this.outputNode);
+      }
+      
+      if (this.reverbNode) {
+        drySignal.connect(this.reverbNode);
+        this.reverbNode.connect(this.reverbMix);
+        this.reverbMix.connect(this.outputNode);
+      }
+      
+      // Always connect dry signal to output
       drySignal.connect(this.outputNode);
-      this.delayMix.connect(this.outputNode);
-      this.reverbMix.connect(this.outputNode);
+      
     } catch (e) {
       console.error("Failed to connect audio nodes:", e);
       throw e;
     }
   }
-
   start(noteNumber) {
     if (this.isStopped || this.isPlaying) {
       console.warn("Attempted to start a voice that is already playing or stopped");
       return;
     }
 
-    const now = this.audioContext.currentTime;    try {
+    const now = this.audioContext.currentTime;
+    try {
       const freq = 440 * Math.pow(2, (noteNumber - 69) / 12);
+      
+      // Set frequencies and start oscillators
       this.oscillator1.frequency.setValueAtTime(freq, now);
-      this.oscillator2.frequency.setValueAtTime(freq, now);
-      // Sub-oscillator is one octave lower
-      this.subOscillator.frequency.setValueAtTime(freq / 2, now);
       this.oscillator1.start(now);
-      this.oscillator2.start(now);
-      this.subOscillator.start(now);
+      
+      if (this.oscillator2) {
+        this.oscillator2.frequency.setValueAtTime(freq, now);
+        this.oscillator2.start(now);
+      }
+      
+      if (this.subOscillator) {
+        // Sub-oscillator is one octave lower
+        this.subOscillator.frequency.setValueAtTime(freq / 2, now);
+        this.subOscillator.start(now);
+      }
 
+      // Configure envelope
       const { attack, decay, sustain, velocity } = this.options;
       const peak = velocity || 1.0;
       const sustainLevel = sustain * peak;
@@ -152,6 +192,7 @@ export default class Voice {
 
       this.isPlaying = true;
 
+      // Safety timeout
       this.scheduledStop = setTimeout(() => {
         if (this.isPlaying && !this.isStopped) {
           console.warn("Safety timeout: stopping voice after 15 seconds");
@@ -164,7 +205,6 @@ export default class Voice {
       throw e;
     }
   }
-
   stop(immediate = false) {
     if (this.isStopped) return;
     const now = this.audioContext.currentTime;
@@ -180,24 +220,31 @@ export default class Voice {
       const currentGain = this.gainNode.gain.value;
       this.gainNode.gain.setValueAtTime(currentGain, now);
 
-      if (immediate) {        this.gainNode.gain.linearRampToValueAtTime(0, now + 0.01);
+      if (immediate) {
+        this.gainNode.gain.linearRampToValueAtTime(0, now + 0.01);
+        
+        // Stop all oscillators that exist
         this.oscillator1.stop(now + 0.02);
-        this.oscillator2.stop(now + 0.02);
-        this.subOscillator.stop(now + 0.02);
-        setTimeout(() => this.disconnect(), 50);} else {
+        if (this.oscillator2) this.oscillator2.stop(now + 0.02);
+        if (this.subOscillator) this.subOscillator.stop(now + 0.02);
+        
+        setTimeout(() => this.disconnect(), 50);
+      } else {
         const { release } = this.options;
         const safeRelease = Math.min(Math.max(0.01, release), 2.0);
         this.gainNode.gain.linearRampToValueAtTime(0, now + safeRelease);
+        
+        // Stop all oscillators that exist
         this.oscillator1.stop(now + safeRelease + 0.05);
-        this.oscillator2.stop(now + safeRelease + 0.05);
-        this.subOscillator.stop(now + safeRelease + 0.05);
+        if (this.oscillator2) this.oscillator2.stop(now + safeRelease + 0.05);
+        if (this.subOscillator) this.subOscillator.stop(now + safeRelease + 0.05);
+        
         setTimeout(() => this.disconnect(), (safeRelease + 0.1) * 1000);
       }
 
       this.isStopped = true;
       this.isPlaying = false;
-    } catch (e) {
-      console.error("Error stopping voice:", e);
+    } catch (e) {      console.error("Error stopping voice:", e);
       try {
         this.disconnect();
       } catch (disconnectError) {
@@ -325,10 +372,10 @@ export default class Voice {
         break;
       case 'oscillator2Detune':
         if (this.oscillator2) this.oscillator2.detune.setValueAtTime(value, now);
-        break;
-      case 'oscillator1Mix':
+        break;      case 'oscillator1Mix':
         if (this.oscMixer1) this.oscMixer1.gain.setValueAtTime(value, now);
-        break;      case 'oscillator2Mix':
+        break;
+      case 'oscillator2Mix':
         if (this.oscMixer2) this.oscMixer2.gain.setValueAtTime(value, now);
         break;
       case 'subOscillatorEnabled':
@@ -398,8 +445,7 @@ export default class Voice {
         this.gainNode.gain.cancelScheduledValues(this.audioContext.currentTime);
         this.gainNode.gain.value = 0;
       }
-      
-      // Force disconnect all nodes
+        // Force disconnect all nodes
       this.disconnect();
       
       if (this.oscillator1) {

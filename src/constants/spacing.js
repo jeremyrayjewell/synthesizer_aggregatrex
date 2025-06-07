@@ -51,23 +51,42 @@ export const createPositioning = (width, height, depth) => ({
 
 // Common spacing values used across panels
 export const COMMON_SPACING = {
-  // Knob and slider sizes
-  SMALL_KNOB_SIZE: 0.35,
-  MEDIUM_KNOB_SIZE: 0.4,
-  LARGE_KNOB_SIZE: 0.5,
+  // Knob sizes - standardized across all panels
+  SMALL_KNOB_SIZE: 0.35,        // For toggles/sub-oscillator controls
+  MEDIUM_KNOB_SIZE: 0.45,       // Standard panel knobs (most common)
+  LARGE_KNOB_SIZE: 0.45,        // Same as medium for consistency
+  MASTER_KNOB_SIZE: 0.55,       // Master volume knob - slightly larger but not huge
   
-  // Slider dimensions
+  // Toggle switch sizes - standardized
+  SMALL_TOGGLE_SIZE: 0.15,      // Effects toggles
+  MEDIUM_TOGGLE_SIZE: 0.2,      // Standard toggles
+  LARGE_TOGGLE_SIZE: 0.35,      // Primary/panel toggles
+  
+  // Slider dimensions - standardized
   SLIDER_THICKNESS: 0.08,
   SLIDER_LENGTH: 1.75,
   
-  // Text spacing
+  // Text sizing - standardized
+  TITLE_FONT_SIZE: 0.1,         // Panel titles
+  LABEL_FONT_SIZE: 0.06,        // Knob/control labels
+  VALUE_FONT_SIZE: 0.08,        // Value displays
+  SECTION_FONT_SIZE: 0.12,      // Section headers (effects)
+  
+  // Text spacing and positioning
   TITLE_OFFSET: 0.06,
+  LABEL_Y_OFFSET: -0.4,         // Relative to knob size
+  VALUE_Y_OFFSET: 0.4,          // Relative to knob size
   
   // Panel adjustments
   FILTER_TOP_ADJUSTMENT: -0.25,
   FILTER_LOW_ADJUSTMENT: -0.25,
-  ADSR_SLIDER_Y_ADJUSTMENT: 0.,
+  ADSR_SLIDER_Y_ADJUSTMENT: 0,
   
   // Common spacings
-  SLIDER_SPACING: 0.35
+  SLIDER_SPACING: 0.35,
+  
+  // Waveform selector sizing
+  WAVEFORM_SIZE: 0.5,
+  WAVEFORM_FONT_MULTIPLIER: 0.2,  // Relative to size
+  WAVEFORM_LABEL_MULTIPLIER: 0.15 // Relative to size
 };

@@ -7,8 +7,8 @@ import { useSynthContext } from '../hooks/useSynth';
 
 const EffectsPanel = ({
   position = [0, 0, 0],
-  width = 6,
-  height = 4,
+  width = 3.2,
+  height = 3.2,
   depth = 0.2,
   color = '#2c2c2c',
   knobColor = '#ff6b35'
@@ -16,16 +16,14 @@ const EffectsPanel = ({
   const { synthParams, setSynthParams, synth } = useSynthContext();
   const effects = synthParams?.effects || {};
   
-  const { topY, centerY, bottomY, leftX, rightX, centerX, knobZ, textZ } = createPositioning(width, height, depth);
-  
-  // Create a 3x2 grid layout for effects
+  const { topY, centerY, bottomY, leftX, rightX, centerX, knobZ, textZ } = createPositioning(width, height, depth);  // Create a 3x2 grid layout for effects with more horizontal separation
   const effectPositions = {
-    distortion: [leftX * 1.5, topY * 0.8, knobZ],
-    eq: [centerX, topY * 0.8, knobZ],
-    compressor: [rightX * 1.5, topY * 0.8, knobZ],
-    chorus: [leftX * 1.5, bottomY * 0.8, knobZ],
-    delay: [centerX, bottomY * 0.8, knobZ],
-    reverb: [rightX * 1.5, bottomY * 0.8, knobZ]
+    distortion: [leftX * 1.2, topY * 1.0, knobZ],
+    eq: [centerX, topY * 1.0, knobZ],
+    compressor: [rightX * 1.2, topY * 1.0, knobZ],
+    chorus: [leftX * 1.2, bottomY * 1.0, knobZ],
+    delay: [centerX, bottomY * 1.0, knobZ],
+    reverb: [rightX * 1.2, bottomY * 1.0, knobZ]
   };
   const handleEffectParamChange = (effectName, paramName, value) => {
     const updatedEffects = {
@@ -46,11 +44,10 @@ const EffectsPanel = ({
       synth.setEffectParam(effectName, paramName, value);
     }
   };  const DistortionSection = ({ position }) => (
-    <group position={position}>
-      {/* Effect title */}
+    <group position={position}>      {/* Effect title */}
       <Text
         position={[0, 0.4, 0]}
-        fontSize={0.12}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -63,15 +60,13 @@ const EffectsPanel = ({
         <ToggleSwitch
           value={effects.distortion?.enabled || false}
           onChange={(value) => handleEffectParamChange('distortion', 'enabled', value)}
-          size={0.15}
+          size={COMMON_SPACING.SMALL_TOGGLE_SIZE}
           onColor="#ff6b35"
           offColor="#666666"
         />
-      </group>
-        {/* Parameter knobs arranged in a triangle pattern */}
-      <group position={[-0.25, -0.05, 0]}>
-        <Knob
-          size={0.6}
+      </group>        {/* Parameter knobs arranged in a triangle pattern */}
+      <group position={[-0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.distortion?.drive || 0) / 20}
           min={0}
           max={1}
@@ -82,9 +77,8 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.25, -0.05, 0]}>
-        <Knob
-          size={0.6}
+      <group position={[0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.distortion?.tone || 0.5)}
           min={0}
           max={1}
@@ -95,9 +89,8 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, -0.35, 0]}>
-        <Knob
-          size={0.6}
+      <group position={[0, -0.35, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={effects.distortion?.mix || 0.5}
           min={0}
           max={1}
@@ -109,10 +102,9 @@ const EffectsPanel = ({
       </group>
     </group>
   );  const EQSection = ({ position }) => (
-    <group position={position}>
-      <Text
+    <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.12}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -124,14 +116,12 @@ const EffectsPanel = ({
         <ToggleSwitch
           value={effects.eq?.enabled || false}
           onChange={(value) => handleEffectParamChange('eq', 'enabled', value)}
-          size={0.15}
+          size={COMMON_SPACING.SMALL_TOGGLE_SIZE}
           onColor="#ff6b35"
           offColor="#666666"
         />
-      </group>
-        <group position={[-0.25, -0.05, 0]}>
-        <Knob
-          size={0.55}
+      </group>        <group position={[-0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.eq?.lowGain || 0 + 12) / 24}
           min={0}
           max={1}
@@ -142,9 +132,8 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.25, -0.05, 0]}>
-        <Knob
-          size={0.55}
+      <group position={[0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.eq?.midGain || 0 + 12) / 24}
           min={0}
           max={1}
@@ -155,9 +144,8 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, -0.35, 0]}>
-        <Knob
-          size={0.55}
+      <group position={[0, -0.35, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.eq?.highGain || 0 + 12) / 24}
           min={0}
           max={1}
@@ -168,11 +156,10 @@ const EffectsPanel = ({
         />
       </group>
     </group>
-  );
-  const CompressorSection = ({ position }) => (
+  );  const CompressorSection = ({ position }) => (
     <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.12}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -183,15 +170,13 @@ const EffectsPanel = ({
       <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.compressor?.enabled || false}
           onChange={(value) => handleEffectParamChange('compressor', 'enabled', value)}
-          size={0.15}
+          size={COMMON_SPACING.SMALL_TOGGLE_SIZE}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-        {/* Parameter knobs arranged in a uniform triangle pattern */}
-      <group position={[-0.25, -0.05, 0]}>
-        <Knob
-          size={0.55}
+        {/* Parameter knobs arranged in a uniform triangle pattern */}        <group position={[-0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.compressor?.threshold || -12 + 60) / 60}
           min={0}
           max={1}
@@ -202,9 +187,8 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.25, -0.05, 0]}>
-        <Knob
-          size={0.55}
+      <group position={[0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.compressor?.ratio || 4 - 1) / 19}
           min={0}
           max={1}
@@ -214,10 +198,9 @@ const EffectsPanel = ({
           valueFormatter={(val) => `${((val * 19) + 1).toFixed(1)}:1`}
         />
       </group>
-      
-      <group position={[0, -0.35, 0]}>
+        <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.55}
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.compressor?.makeupGain || 0 + 20) / 20}
           min={0}
           max={1}
@@ -231,7 +214,7 @@ const EffectsPanel = ({
   );  const ChorusSection = ({ position }) => (
     <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.12}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -242,15 +225,13 @@ const EffectsPanel = ({
       <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.chorus?.enabled || false}
           onChange={(value) => handleEffectParamChange('chorus', 'enabled', value)}
-          size={0.15}
+          size={COMMON_SPACING.SMALL_TOGGLE_SIZE}
           onColor="#ff6b35"
           offColor="#666666"
         />
       </group>
-        {/* Parameter knobs arranged in a uniform triangle pattern */}
-      <group position={[-0.25, -0.05, 0]}>
-        <Knob
-          size={0.6}
+        {/* Parameter knobs arranged in a uniform triangle pattern */}        <group position={[-0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.chorus?.rate || 0.5) / 10}
           min={0}
           max={1}
@@ -261,9 +242,8 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0.25, -0.05, 0]}>
-        <Knob
-          size={0.6}
+      <group position={[0.25, -0.05, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={effects.chorus?.depth || 0.002}
           min={0}
           max={0.01}
@@ -274,9 +254,8 @@ const EffectsPanel = ({
         />
       </group>
       
-      <group position={[0, -0.35, 0]}>
-        <Knob
-          size={0.6}
+      <group position={[0, -0.35, 0]}>        <Knob
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={effects.chorus?.mix || 0.3}
           min={0}
           max={1}
@@ -290,7 +269,7 @@ const EffectsPanel = ({
   );  const DelaySection = ({ position }) => (
     <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.12}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -301,15 +280,13 @@ const EffectsPanel = ({
       <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.delay?.enabled || false}
           onChange={(value) => handleEffectParamChange('delay', 'enabled', value)}
-          size={0.15}
+          size={COMMON_SPACING.SMALL_TOGGLE_SIZE}
           onColor="#ff6b35"
           offColor="#666666"
-        />
-      </group>
-        {/* Parameter knobs arranged in a uniform triangle pattern */}
+        />      </group>      {/* Parameter knobs arranged in a uniform triangle pattern */}
       <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.55}
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.delay?.time || 0.25)}
           min={0}
           max={1}
@@ -322,7 +299,7 @@ const EffectsPanel = ({
       
       <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.55}
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={effects.delay?.feedback || 0.3}
           min={0}
           max={0.95}
@@ -335,7 +312,7 @@ const EffectsPanel = ({
       
       <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.55}
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={effects.delay?.mix || 0.2}
           min={0}
           max={1}
@@ -349,7 +326,7 @@ const EffectsPanel = ({
   );  const ReverbSection = ({ position }) => (
     <group position={position}>      <Text
         position={[0, 0.4, 0]}
-        fontSize={0.12}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -360,15 +337,13 @@ const EffectsPanel = ({
       <group position={[0, 0.25, 0]}>        <ToggleSwitch
           value={effects.reverb?.enabled || false}
           onChange={(value) => handleEffectParamChange('reverb', 'enabled', value)}
-          size={0.15}
+          size={COMMON_SPACING.SMALL_TOGGLE_SIZE}
           onColor="#ff6b35"
           offColor="#666666"
-        />
-      </group>
-        {/* Parameter knobs arranged in a uniform triangle pattern */}
+        />      </group>      {/* Parameter knobs arranged in a uniform triangle pattern */}
       <group position={[-0.25, -0.05, 0]}>
         <Knob
-          size={0.55}
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={effects.reverb?.size || 0.5}
           min={0}
           max={1}
@@ -381,7 +356,7 @@ const EffectsPanel = ({
       
       <group position={[0.25, -0.05, 0]}>
         <Knob
-          size={0.55}
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={(effects.reverb?.decay || 2) / 10}
           min={0}
           max={1}
@@ -394,7 +369,7 @@ const EffectsPanel = ({
       
       <group position={[0, -0.35, 0]}>
         <Knob
-          size={0.55}
+          size={COMMON_SPACING.MEDIUM_KNOB_SIZE}
           value={effects.reverb?.mix || 0.2}
           min={0}
           max={1}
@@ -419,7 +394,7 @@ const EffectsPanel = ({
       </mesh>      {/* Panel title */}
       <Text
         position={[0, height / 2 - 0.2, textZ]}
-        fontSize={0.4}
+        fontSize={COMMON_SPACING.TITLE_FONT_SIZE}
         color="white"
         anchorX="center"
         anchorY="middle"
