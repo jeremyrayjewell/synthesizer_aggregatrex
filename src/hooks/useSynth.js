@@ -142,8 +142,21 @@ export const SynthProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    synthRef.current = new SynthEngine();
-    setIsReady(true);
+    const initSynth = async () => {
+      try {
+        synthRef.current = new SynthEngine();
+        // Wait for synth engine initialization
+        await synthRef.current.initPromise;
+        console.log("Synth engine initialized successfully");
+        setIsReady(true);
+      } catch (error) {
+        console.error("Failed to initialize synth engine:", error);
+        setIsReady(false);
+      }
+    };
+
+    initSynth();
+
     return () => {
       if (synthRef.current) {
         synthRef.current.dispose();

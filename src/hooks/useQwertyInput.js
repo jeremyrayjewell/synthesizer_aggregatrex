@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const keyToNote = {
+export const keyToNote = {
   a: 60,
   w: 61,
   s: 62,

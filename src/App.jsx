@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, startTransition } from 'react';
 import { SynthProvider, useSynth } from './hooks/useSynth';
 import { useMIDI } from './hooks/useMIDI';
-import useQwertyInput from './hooks/useQwertyInput';
+import useQwertyInput, { keyToNote } from './hooks/useQwertyInput';
 import ThreeCanvas from './three/ThreeCanvas';
 import midiDebugger from './utils/midiDebugger';
 
@@ -82,11 +82,25 @@ const SynthController = () => {
   useQwertyInput(handleNoteOn, handleNoteOff);
   useEffect(() => {
     const resumeAudioContext = async () => {
-      if (synth && synth.audioContext && synth.audioContext.state !== 'running') {
-        console.log("Resuming audio context on user interaction");
+      if (!synth) {
+        console.warn("Synth not available yet");
+        return;
+      }
+
+      if (!synth.audioContext) {
+        console.warn("Audio context not initialized yet");
+        return;
+      }
+
+      if (synth.audioContext.state !== 'running') {
+        console.log("Attempting to resume audio context...");
         try {
           await synth.audioContext.resume();
-          console.log("Audio context resumed successfully");
+          if (synth.audioContext.state === 'running') {
+            console.log("Audio context resumed successfully");
+          } else {
+            console.warn(`Audio context in unexpected state: ${synth.audioContext.state}`);
+          }
         } catch (e) {
           console.error("Error resuming audio context:", e);
         }
@@ -95,12 +109,22 @@ const SynthController = () => {
 
     // More aggressive audio context resume for better MIDI responsiveness
     const handleFirstInteraction = async (event) => {
-      await resumeAudioContext();
-      // Remove listeners after first successful resume
-      if (synth && synth.audioContext && synth.audioContext.state === 'running') {
-        window.removeEventListener('mousedown', handleFirstInteraction);
-        window.removeEventListener('touchstart', handleFirstInteraction);
-        window.removeEventListener('keydown', handleFirstInteraction);
+      console.log("First interaction detected, attempting to resume audio context");
+      if (synth && synth.audioContext) {
+        try {
+          await synth.audioContext.resume();
+          console.log("Audio context resumed successfully on first interaction");
+          // Remove listeners only after successful resume
+          window.removeEventListener('mousedown', handleFirstInteraction);
+          window.removeEventListener('touchstart', handleFirstInteraction);
+          window.removeEventListener('keydown', handleFirstInteraction);
+          // Ensure handleNoteOn will work after context is resumed
+          if (event.type === 'keydown' && keyToNote[event.key]) {
+            handleNoteOn(keyToNote[event.key], 127);
+          }
+        } catch (e) {
+          console.error("Failed to resume audio context on first interaction:", e);
+        }
       }
     };
 

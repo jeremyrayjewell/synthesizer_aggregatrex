@@ -24,13 +24,43 @@ import {
 export default class SynthEngine {
   constructor() {
     this.isInitialized = false;
+    this.initializationAttempts = 0;
+    this.maxInitAttempts = 3;
     this.initPromise = this.initializeAudioContext();
+    this.initPromise.catch(e => {
+      console.error("Failed to initialize SynthEngine:", e);
+      this.retryInitialization();
+    });
+  }
+
+  retryInitialization() {
+    if (this.initializationAttempts < this.maxInitAttempts) {
+      this.initializationAttempts++;
+      console.log(`Retrying SynthEngine initialization (attempt ${this.initializationAttempts}/${this.maxInitAttempts})`);
+      setTimeout(() => {
+        this.initPromise = this.initializeAudioContext();
+      }, 1000);
+    }
   }
 
   async initializeAudioContext() {
     try {
       this.audioContext = await audioContextManager.createContext();
+      
+      if (!this.audioContext) {
+        throw new Error("Failed to create audio context");
+      }
+
+      // Set up listeners for user interaction to resume context
       audioContextManager.setupUserActivationListeners();
+      
+      // Add our own state change listener
+      this.audioContext.addEventListener('statechange', () => {
+        console.log(`Audio context state changed to: ${this.audioContext.state}`);
+        if (this.audioContext.state === 'running') {
+          this.isInitialized = true;
+        }
+      });
       
       this.masterGain = this.audioContext.createGain();
       this.masterGain.gain.value = DEFAULT_MASTER_VOLUME;
@@ -116,15 +146,32 @@ export default class SynthEngine {
   }
 
   noteOn(note, velocity = 127) {
-    // Simple and robust audio context handling
+    if (!this.audioContext) {
+      console.error("Audio context not initialized");
+      return;
+    }
+
+    // Enhanced audio context handling with retries
     if (this.audioContext.state === 'suspended') {
       console.log("Auto-resuming suspended audio context");
-      this.audioContext.resume().then(() => {
-        console.log("Audio context resumed, processing note");
-        this._performNoteOn(note, velocity);
-      }).catch(e => {
-        console.error("Failed to resume audio context:", e);
-      });
+      const maxRetries = 3;
+      let retryCount = 0;
+      
+      const attemptResume = () => {
+        this.audioContext.resume().then(() => {
+          console.log("Audio context resumed successfully, processing note");
+          this._performNoteOn(note, velocity);
+        }).catch(e => {
+          console.error(`Failed to resume audio context (attempt ${retryCount + 1}/${maxRetries}):`, e);
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log("Retrying audio context resume...");
+            setTimeout(attemptResume, 100);
+          }
+        });
+      };
+      
+      attemptResume();
       return;
     }
     
